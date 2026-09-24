@@ -28,9 +28,17 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Cloud SQL Scrapbook persistence endpoints
 app.get('/api/book-data', async (req, res) => {
   try {
+    let fileData: any = {};
+    if (fs.existsSync(DATA_FILE)) {
+      try {
+        fileData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+      } catch {}
+    }
+
     const book = await getScrapbook('main_book');
     if (book) {
       return res.json({
+        ...fileData,
         title: book.title,
         subtitle: book.subtitle || '',
         recipientName: book.recipientName || '',
@@ -38,16 +46,15 @@ app.get('/api/book-data', async (req, res) => {
         specialDate: book.specialDate || '',
         theme: book.theme || {},
         pages: book.pages || [],
-        songs: book.songs || [],
+        songs: (Array.isArray(book.songs) && book.songs.length > 0) ? book.songs : (fileData.songs || []),
         surpriseQuotes: book.surpriseQuotes || [],
         updatedAt: book.updatedAt,
       });
     }
 
     // Fallback to local file if SQL record not created yet
-    if (fs.existsSync(DATA_FILE)) {
-      const data = fs.readFileSync(DATA_FILE, 'utf-8');
-      return res.json(JSON.parse(data));
+    if (Object.keys(fileData).length > 0) {
+      return res.json(fileData);
     }
     return res.json({ initialized: false });
   } catch (error: any) {
@@ -65,30 +72,49 @@ app.get('/api/book-data', async (req, res) => {
 
 app.post('/api/book-data', optionalAuth, async (req: AuthRequest, res) => {
   try {
-    const payload = req.body;
+    const payload = req.body || {};
     
-    // Save to PostgreSQL via Drizzle
+    // Fetch current existing book from SQL and file to merge safely
+    let currentBackup: any = {};
+    if (fs.existsSync(DATA_FILE)) {
+      try {
+        currentBackup = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+      } catch {}
+    }
+
+    let existingSql: any = {};
+    try {
+      existingSql = (await getScrapbook('main_book')) || {};
+    } catch {}
+
+    const merged = {
+      ...currentBackup,
+      ...existingSql,
+      ...payload,
+    };
+    
+    // Save merged to PostgreSQL via Drizzle
     const saved = await upsertScrapbook({
       bookKey: 'main_book',
-      title: payload.title || 'Nuestro Scrapbook',
-      subtitle: payload.subtitle || '',
-      recipientName: payload.recipientName || '',
-      senderName: payload.senderName || '',
-      specialDate: payload.specialDate || '',
-      theme: payload.theme || {},
-      pages: payload.pages || [],
-      songs: payload.songs || [],
-      surpriseQuotes: payload.surpriseQuotes || [],
+      title: merged.title || 'Nuestro Scrapbook',
+      subtitle: merged.subtitle ?? '',
+      recipientName: merged.recipientName ?? '',
+      senderName: merged.senderName ?? '',
+      specialDate: merged.specialDate ?? '',
+      theme: merged.theme ?? {},
+      pages: merged.pages ?? [],
+      songs: merged.songs ?? [],
+      surpriseQuotes: merged.surpriseQuotes ?? [],
     });
 
-    // Also write backup file
+    // Also write merged backup file
     try {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+      fs.writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2), 'utf-8');
     } catch (e) {
       console.warn('Backup file write failed:', e);
     }
 
-    return res.json({ success: true, timestamp: Date.now(), id: saved.id });
+    return res.json({ success: true, timestamp: Date.now(), id: saved?.id });
   } catch (error: any) {
     console.error('Error saving book data to Cloud SQL:', error);
     return res.status(500).json({ error: 'Failed to save book data' });
@@ -177,11 +203,21 @@ app.post('/api/songs', optionalAuth, async (req: AuthRequest, res) => {
 
 app.delete('/api/songs/:id', async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: 'Invalid song ID' });
+    const rawId = req.params.id;
+    const { url } = req.body || {};
+    
+    // Check if numeric or has prefix db-
+    const cleanId = rawId.startsWith('db-') ? rawId.replace('db-', '') : rawId;
+    const numericId = parseInt(cleanId, 10);
+    
+    if (!isNaN(numericId)) {
+      await deleteSongItem(numericId);
+    } else if (url) {
+      await deleteSongItem(url);
+    } else {
+      // Song might be local or external, still succeed
+      await deleteSongItem(rawId);
     }
-    await deleteSongItem(id);
     return res.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting song:', error);

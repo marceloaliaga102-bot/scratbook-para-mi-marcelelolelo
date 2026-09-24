@@ -155,7 +155,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   };
 
   // Submit new song to playlist
-  const handleAddSongSubmit = (e: React.FormEvent) => {
+  const handleAddSongSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle || !newUrl) return;
 
@@ -168,21 +168,30 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
       duration: newType === 'local' ? 'Audio MP3' : 'En línea',
     };
 
-    // Save to Cloud SQL PostgreSQL database
-    fetch('/api/songs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: newSong.title,
-        artist: newSong.artist,
-        url: newSong.url,
-        type: newSong.type,
-        duration: newSong.duration,
-      }),
-    }).catch((err) => console.warn('Cloud SQL song save warning:', err));
-
+    // Immediate optimistic update to UI and parent
     const updated = [...songs, newSong];
     onUpdateSongs?.(updated);
+
+    // Save to Cloud SQL PostgreSQL database
+    try {
+      const res = await fetch('/api/songs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newSong.title,
+          artist: newSong.artist,
+          url: newSong.url,
+          type: newSong.type,
+          duration: newSong.duration,
+        }),
+      });
+      const data = await res.json();
+      if (data.song?.id) {
+        newSong.id = `db-${data.song.id}`;
+      }
+    } catch (err) {
+      console.warn('Cloud SQL song save warning:', err);
+    }
 
     // Reset form
     setNewTitle('');
@@ -196,11 +205,22 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   const handleDeleteSong = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (songs.length <= 1) return;
+    const songToDelete = songs.find((s) => s.id === id);
     const updated = songs.filter((s) => s.id !== id);
+    
+    // Immediate optimistic update
     onUpdateSongs?.(updated);
+    
     if (currentSongIndex >= updated.length) {
       setCurrentSongIndex(0);
     }
+
+    // Call DELETE API to remove from Cloud SQL songs table
+    fetch(`/api/songs/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: songToDelete?.url }),
+    }).catch((err) => console.warn('Failed to delete song from /api/songs:', err));
   };
 
   return (

@@ -134,9 +134,13 @@ export async function getSongItems() {
   }
 }
 
-export async function deleteSongItem(id: number) {
+export async function deleteSongItem(idOrUrl: number | string) {
   try {
-    return await db.delete(songs).where(eq(songs.id, id)).returning();
+    if (typeof idOrUrl === 'number') {
+      return await db.delete(songs).where(eq(songs.id, idOrUrl)).returning();
+    } else {
+      return await db.delete(songs).where(eq(songs.url, idOrUrl)).returning();
+    }
   } catch (error) {
     console.error('Database deleteSongItem failed:', error);
     throw new Error('Database deleteSongItem failed. Please try again later.', { cause: error });

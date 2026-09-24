@@ -71,33 +71,19 @@ export default function App() {
   const [cloudSynced, setCloudSynced] = useState<boolean>(true);
   const [syncStatusText, setSyncStatusText] = useState<string>('Conectado en la nube');
 
-  // Playlist state with uploaded & custom songs
-  const [songs, setSongs] = useState<SongItem[]>([
-    {
-      id: 'synth-1',
-      title: 'Melodía Romántica en Piano',
-      artist: 'Nuestra Historia de Amor',
-      type: 'synth',
-      url: 'synth',
-      duration: 'Ambiental',
-    },
-    {
-      id: 'yt-1',
-      title: 'Ed Sheeran - Perfect',
-      artist: 'Ed Sheeran',
-      type: 'youtube',
-      url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
-      duration: '4:23',
-    },
-    {
-      id: 'spot-1',
-      title: "Can't Help Falling in Love",
-      artist: 'Elvis Presley',
-      type: 'spotify',
-      url: 'https://open.spotify.com/track/44AyOl4qVkzS48vBsbNXaC',
-      duration: '3:00',
-    },
-  ]);
+  // Playlist state with uploaded & custom songs, initialized from stored data
+  const [songs, setSongs] = useState<SongItem[]>(() => {
+    try {
+      const local = localStorage.getItem('scrapbook_500_data');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed.songs) && parsed.songs.length > 0) {
+          return parsed.songs;
+        }
+      }
+    } catch {}
+    return defaultScrapbookData.songs || [];
+  });
 
   // Movable moon coordinates
   const [moonPos, setMoonPos] = useState({ x: 75, y: 15 });
@@ -136,6 +122,7 @@ export default function App() {
           setSongs((prev) => {
             const existingUrls = new Set(prev.map((p) => p.url));
             const newOnes = mapped.filter((m) => !existingUrls.has(m.url));
+            if (newOnes.length === 0) return prev;
             return [...prev, ...newOnes];
           });
         }
@@ -148,6 +135,9 @@ export default function App() {
       .then((sqlBook) => {
         if (sqlBook && sqlBook.title && sqlBook.initialized !== false) {
           setData((prev) => ({ ...prev, ...sqlBook }));
+          if (Array.isArray(sqlBook.songs) && sqlBook.songs.length > 0) {
+            setSongs(sqlBook.songs);
+          }
         }
       })
       .catch(() => {});
@@ -159,6 +149,9 @@ export default function App() {
     const unsubscribe = subscribeToScrapbook(
       (cloudData) => {
         setData(cloudData);
+        if (Array.isArray(cloudData.songs) && cloudData.songs.length > 0) {
+          setSongs(cloudData.songs);
+        }
         setCloudSynced(true);
         setSyncStatusText('PostgreSQL & Firebase ✓');
         try {
@@ -191,7 +184,7 @@ export default function App() {
   const handleUpdateSongs = (newSongs: SongItem[]) => {
     setSongs(newSongs);
     updateData({
-      // sync to store if needed
+      songs: newSongs,
     });
   };
 
@@ -214,33 +207,38 @@ export default function App() {
     });
   };
 
-  // Función unificada que actualiza en tiempo real en PostgreSQL (Cloud SQL) y Firebase Firestore
+  // Función unificada ultra-rápida que actualiza en tiempo real en PostgreSQL (Cloud SQL) y Firebase Firestore
   const updateData = async (partial: Partial<ScrapbookStore>) => {
-    setData((prev) => ({ ...prev, ...partial }));
-    setSyncStatusText('Guardando en la nube...');
-    try {
-      localStorage.setItem('scrapbook_500_data', JSON.stringify({ ...data, ...partial }));
-    } catch {
-      // ignore
-    }
+    // 1. Actualización optimista instantánea (0ms de retraso)
+    setData((prev) => {
+      const next = { ...prev, ...partial };
+      try {
+        localStorage.setItem('scrapbook_500_data', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
 
-    // Guardar en Cloud SQL PostgreSQL
-    fetch('/api/book-data', {
+    setSyncStatusText('Guardando...');
+
+    // 2. Guardar en paralelo en PostgreSQL (Cloud SQL) y Firebase Firestore
+    const sqlPromise = fetch('/api/book-data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, ...partial }),
+      body: JSON.stringify(partial),
     }).catch((err) => console.warn('Cloud SQL save warning:', err));
 
-    // Guardar en Firebase Firestore
-    try {
-      await saveScrapbookToCloud(partial);
-      setCloudSynced(true);
-      setSyncStatusText('PostgreSQL & Firebase ✓');
-    } catch (err) {
-      console.error('Error al guardar en Firebase:', err);
-      setCloudSynced(false);
-      setSyncStatusText('Guardado localmente');
-    }
+    const firestorePromise = saveScrapbookToCloud(partial)
+      .then(() => {
+        setCloudSynced(true);
+        setSyncStatusText('PostgreSQL & Firebase ✓');
+      })
+      .catch((err) => {
+        console.error('Error al guardar en Firebase:', err);
+        setCloudSynced(false);
+        setSyncStatusText('Guardado localmente');
+      });
+
+    await Promise.allSettled([sqlPromise, firestorePromise]);
   };
 
   // Dragging movable moon

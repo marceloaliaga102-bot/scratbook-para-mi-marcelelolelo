@@ -1,3 +1,5 @@
+import { SongItem } from '../types';
+
 export interface ScrapbookStore {
   // Common details
   recipientName: string;
@@ -64,6 +66,7 @@ export interface ScrapbookStore {
   coverTitle: string;
   coverSubtitle: string;
   specialMoments: { title: string; date: string; photo: string }[];
+  songs?: SongItem[];
 }
 
 export const defaultScrapbookData: ScrapbookStore = {
@@ -157,5 +160,31 @@ export const defaultScrapbookData: ScrapbookStore = {
   specialMoments: [
     { title: 'El inicio de nuestra magia', date: 'Día Inolvidable', photo: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop' },
     { title: 'Tardes de risas infinitas', date: 'Siempre Juntos', photo: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&auto=format&fit=crop' },
+  ],
+  songs: [
+    {
+      id: 'synth-1',
+      title: 'Melodía Romántica en Piano',
+      artist: 'Nuestra Historia de Amor',
+      type: 'synth',
+      url: 'synth',
+      duration: 'Ambiental',
+    },
+    {
+      id: 'yt-1',
+      title: 'Ed Sheeran - Perfect',
+      artist: 'Ed Sheeran',
+      type: 'youtube',
+      url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
+      duration: '4:23',
+    },
+    {
+      id: 'spot-1',
+      title: "Can't Help Falling in Love",
+      artist: 'Elvis Presley',
+      type: 'spotify',
+      url: 'https://open.spotify.com/track/44AyOl4qVkzS48vBsbNXaC',
+      duration: '3:00',
+    },
   ],
 };
