@@ -65,7 +65,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 Panel de Administración en la Nube
               </h2>
               <p className="text-xs text-slate-500">
-                Conectado con Firebase Firestore • Sincronización en vivo
+                PostgreSQL (Cloud SQL) & Firebase Firestore • Sincronización en vivo
               </p>
             </div>
           </div>

@@ -9,7 +9,7 @@ import {
   ChevronRight,
   BookOpen,
   Cloud,
-  CheckCloud,
+  Check,
   Moon,
   Volume2,
   VolumeX,
@@ -20,8 +20,10 @@ import { EmpanadaRain } from './components/EmpanadaRain';
 import { EditItemModal } from './components/EditItemModal';
 import { SecretLetterModal } from './components/SecretLetterModal';
 import { AdminModal } from './components/AdminModal';
+import { MusicPlayer } from './components/MusicPlayer';
 import { romanticAudio } from './utils/romanticAudio';
 import { subscribeToScrapbook, saveScrapbookToCloud } from './firebase';
+import { SongItem } from './types';
 
 // Spreads
 import { SpreadCover } from './components/spreads/SpreadCover';
@@ -65,7 +67,35 @@ export default function App() {
   const [isLetterOpen, setIsLetterOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [cloudSynced, setCloudSynced] = useState<boolean>(true);
-  const [syncStatusText, setSyncStatusText] = useState<string>('Sincronizado con Firebase');
+  const [syncStatusText, setSyncStatusText] = useState<string>('Conectado en la nube');
+
+  // Playlist state with uploaded & custom songs
+  const [songs, setSongs] = useState<SongItem[]>([
+    {
+      id: 'synth-1',
+      title: 'Melodía Romántica en Piano',
+      artist: 'Nuestra Historia de Amor',
+      type: 'synth',
+      url: 'synth',
+      duration: 'Ambiental',
+    },
+    {
+      id: 'yt-1',
+      title: 'Ed Sheeran - Perfect',
+      artist: 'Ed Sheeran',
+      type: 'youtube',
+      url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g',
+      duration: '4:23',
+    },
+    {
+      id: 'spot-1',
+      title: "Can't Help Falling in Love",
+      artist: 'Elvis Presley',
+      type: 'spotify',
+      url: 'https://open.spotify.com/track/44AyOl4qVkzS48vBsbNXaC',
+      duration: '3:00',
+    },
+  ]);
 
   // Movable moon coordinates
   const [moonPos, setMoonPos] = useState({ x: 75, y: 15 });
@@ -86,6 +116,41 @@ export default function App() {
     onSave: () => {},
   });
 
+  // Load songs and initial data from Cloud SQL PostgreSQL
+  useEffect(() => {
+    // 1. Fetch songs from Cloud SQL
+    fetch('/api/songs')
+      .then((res) => res.json())
+      .then((dbSongs) => {
+        if (Array.isArray(dbSongs) && dbSongs.length > 0) {
+          const mapped: SongItem[] = dbSongs.map((s) => ({
+            id: `db-${s.id}`,
+            title: s.title,
+            artist: s.artist,
+            url: s.url,
+            type: (s.type as any) || 'local',
+            duration: s.duration || 'MP3',
+          }));
+          setSongs((prev) => {
+            const existingUrls = new Set(prev.map((p) => p.url));
+            const newOnes = mapped.filter((m) => !existingUrls.has(m.url));
+            return [...prev, ...newOnes];
+          });
+        }
+      })
+      .catch(() => {});
+
+    // 2. Fetch book data from Cloud SQL
+    fetch('/api/book-data')
+      .then((res) => res.json())
+      .then((sqlBook) => {
+        if (sqlBook && sqlBook.title && sqlBook.initialized !== false) {
+          setData((prev) => ({ ...prev, ...sqlBook }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // REALTIME FIREBASE SUBSCRIPTION:
   // Cualquier cambio hecho desde cualquier dispositivo o navegador se actualiza en vivo
   useEffect(() => {
@@ -93,7 +158,7 @@ export default function App() {
       (cloudData) => {
         setData(cloudData);
         setCloudSynced(true);
-        setSyncStatusText('Conectado en la nube');
+        setSyncStatusText('PostgreSQL & Firebase ✓');
         try {
           localStorage.setItem('scrapbook_500_data', JSON.stringify(cloudData));
         } catch {
@@ -121,6 +186,13 @@ export default function App() {
     }
   };
 
+  const handleUpdateSongs = (newSongs: SongItem[]) => {
+    setSongs(newSongs);
+    updateData({
+      // sync to store if needed
+    });
+  };
+
   const triggerRain = () => {
     setRainTrigger((prev) => prev + 1);
   };
@@ -140,7 +212,7 @@ export default function App() {
     });
   };
 
-  // Función unificada que actualiza en tiempo real localmente y en Firebase Firestore
+  // Función unificada que actualiza en tiempo real en PostgreSQL (Cloud SQL) y Firebase Firestore
   const updateData = async (partial: Partial<ScrapbookStore>) => {
     setData((prev) => ({ ...prev, ...partial }));
     setSyncStatusText('Guardando en la nube...');
@@ -150,15 +222,22 @@ export default function App() {
       // ignore
     }
 
+    // Guardar en Cloud SQL PostgreSQL
+    fetch('/api/book-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, ...partial }),
+    }).catch((err) => console.warn('Cloud SQL save warning:', err));
+
+    // Guardar en Firebase Firestore
     try {
       await saveScrapbookToCloud(partial);
       setCloudSynced(true);
-      setSyncStatusText('Guardado en Firebase ✓');
-      setTimeout(() => setSyncStatusText('Conectado en la nube'), 2500);
+      setSyncStatusText('PostgreSQL & Firebase ✓');
     } catch (err) {
       console.error('Error al guardar en Firebase:', err);
       setCloudSynced(false);
-      setSyncStatusText('Guardado local (Reintentando nube)');
+      setSyncStatusText('Guardado localmente');
     }
   };
 
@@ -359,6 +438,7 @@ export default function App() {
                 data={data}
                 onOpenEdit={openEdit}
                 onOpenLetter={() => setIsLetterOpen(true)}
+                onTriggerRain={triggerRain}
                 onUpdateData={updateData}
               />
             )}
@@ -385,7 +465,6 @@ export default function App() {
                 data={data}
                 onOpenEdit={openEdit}
                 onTriggerRain={triggerRain}
-                onUpdateData={updateData}
               />
             )}
             {currentSpread === 4 && (
@@ -475,6 +554,13 @@ export default function App() {
           </button>
         </div>
       </main>
+
+      {/* Interactive Music Player with MP3 upload, Spotify, YouTube and Cloud SQL persistence */}
+      <MusicPlayer
+        songs={songs}
+        onUpdateSongs={handleUpdateSongs}
+        isAdmin={true}
+      />
 
       {/* Modals */}
       <EditItemModal

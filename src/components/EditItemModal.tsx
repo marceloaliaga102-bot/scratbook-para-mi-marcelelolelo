@@ -56,7 +56,20 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
-          setValue(reader.result);
+          const dataUrl = reader.result;
+          setValue(dataUrl);
+          // Persist media to Cloud SQL PostgreSQL database
+          fetch('/api/media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: file.name,
+              type: file.type.startsWith('video/') ? 'video' : 'image',
+              url: dataUrl,
+              caption: title,
+              size: file.size,
+            }),
+          }).catch((err) => console.warn('Cloud SQL media upload warning:', err));
         }
       };
       reader.readAsDataURL(file);
@@ -64,6 +77,19 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   };
 
   const handleSave = () => {
+    // If URL input was used for image/video, also record to media library
+    if (type === 'image' && value) {
+      fetch('/api/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: title || 'Multimedia Scrapbook',
+          type: isVideo ? 'video' : 'image',
+          url: value,
+          caption: title,
+        }),
+      }).catch(() => {});
+    }
     onSave(value);
     onClose();
   };
@@ -81,7 +107,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           <div>
             <h3 className="text-xl font-bold font-fancy text-sky-950">{title}</h3>
             <p className="text-[11px] text-sky-600 font-medium">
-              Sincronizado en la nube para ambos con Firebase
+              Sincronizado en la nube (PostgreSQL Cloud SQL & Firebase)
             </p>
           </div>
           <button

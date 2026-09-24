@@ -168,6 +168,19 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
       duration: newType === 'local' ? 'Audio MP3' : 'En línea',
     };
 
+    // Save to Cloud SQL PostgreSQL database
+    fetch('/api/songs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: newSong.title,
+        artist: newSong.artist,
+        url: newSong.url,
+        type: newSong.type,
+        duration: newSong.duration,
+      }),
+    }).catch((err) => console.warn('Cloud SQL song save warning:', err));
+
     const updated = [...songs, newSong];
     onUpdateSongs?.(updated);
 
