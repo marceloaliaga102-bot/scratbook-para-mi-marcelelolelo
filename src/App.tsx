@@ -387,11 +387,11 @@ export default function App() {
             {/* Close / Return to Cover Button */}
             <button
               onClick={() => setIsBookOpened(false)}
-              className="p-2 sm:px-3 sm:py-2 rounded-full bg-white/10 hover:bg-white/20 text-amber-200 border border-amber-300/20 text-xs font-bold flex items-center gap-1.5 transition"
-              title="Volver a la Portada del Libro"
+              className="p-2 sm:px-3 sm:py-2 rounded-full bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-300/30 text-xs font-bold flex items-center gap-1.5 transition shadow"
+              title="Cerrar el libro y volver a la portada interactiva"
             >
               <BookOpen className="w-4 h-4 text-amber-300" />
-              <span className="hidden sm:inline">Portada</span>
+              <span className="hidden sm:inline">Cerrar Libro</span>
             </button>
 
             {/* Admin Settings Button */}
@@ -576,6 +576,7 @@ export default function App() {
           coverSubtitle={data.coverSubtitle}
           onOpenBook={() => {
             setIsBookOpened(true);
+            setCurrentSpread(0);
             if (!isPlayingMusic) {
               romanticAudio.start();
               setIsPlayingMusic(true);
