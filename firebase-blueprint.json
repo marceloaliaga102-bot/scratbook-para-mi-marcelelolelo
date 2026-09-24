@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "scrapbook": {
+      "main": {
+        "read": true,
+        "write": true,
+        "description": "Main scrapbook configuration, custom texts, photos, and mutual edits"
+      }
+    },
+    "media": {
+      "$mediaId": {
+        "read": true,
+        "write": true,
+        "description": "Uploaded media items including photos, videos, stickers and notes"
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart, MessageCircle, Send, Bookmark, Camera, Edit2, Sparkles, CheckCircle2, Repeat, Share2 } from 'lucide-react';
 import { ScrapbookStore } from '../../data/scrapbookData';
+import { MediaRenderer } from '../MediaRenderer';
 
 interface SpreadSocialFeedProps {
   data: ScrapbookStore;
@@ -70,13 +71,26 @@ export const SpreadSocialFeed: React.FC<SpreadSocialFeedProps> = ({
             <span className="text-slate-400 text-xs font-bold tracking-widest cursor-pointer hover:text-slate-600">•••</span>
           </div>
 
-          {/* Photo & Floating speech bubble */}
+          {/* Photo / Video & Floating speech bubble */}
           <div className="relative aspect-[4/3] bg-slate-900 overflow-hidden group">
-            <img
+            <MediaRenderer
               src={data.igPhoto}
               alt="Feed post"
               className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
             />
+
+            {/* Change media overlay button */}
+            <button
+              onClick={() =>
+                onOpenEdit('Cambiar Foto/Video Principal de Instagram', data.igPhoto, 'image', (val) =>
+                  onUpdateData({ igPhoto: val })
+                )
+              }
+              className="absolute top-4 right-4 bg-sky-950/75 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg border border-white/20 opacity-0 group-hover:opacity-100 transition hover:bg-sky-900"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              Cambiar foto/video
+            </button>
 
             {/* Floating speech bubble */}
             <div
@@ -116,26 +130,28 @@ export const SpreadSocialFeed: React.FC<SpreadSocialFeedProps> = ({
                   />
                 </button>
                 <button
-                  onClick={onTriggerRain}
-                  className="text-slate-700 hover:text-sky-500 transition"
-                  title="Comentar"
+                  onClick={() =>
+                    onOpenEdit('Editar Comentario/Pie', data.igCaption, 'textarea', (val) =>
+                      onUpdateData({ igCaption: val })
+                    )
+                  }
+                  className="text-slate-700 hover:text-sky-600 transition"
                 >
                   <MessageCircle className="w-6 h-6" />
                 </button>
                 <button
                   onClick={onTriggerRain}
-                  className="text-slate-700 hover:text-sky-500 transition"
-                  title="Compartir amor"
+                  className="text-slate-700 hover:text-amber-500 transition"
+                  title="Enviar lluvia mágica"
                 >
                   <Send className="w-6 h-6" />
                 </button>
               </div>
-              <Bookmark className="w-6 h-6 text-slate-700 hover:text-amber-500 transition cursor-pointer" />
+              <Bookmark className="w-6 h-6 text-slate-700 hover:text-rose-500 transition cursor-pointer" />
             </div>
 
-            {/* Likes count */}
-            <div className="text-xs font-bold text-slate-900 cursor-pointer hover:text-rose-600 transition" onClick={toggleIgLike}>
-              {data.igLikesCount.toLocaleString()} Me Gusta
+            <div className="text-xs font-bold text-slate-900">
+              {data.igLikesCount.toLocaleString()} Me gusta
             </div>
 
             {/* Caption */}
@@ -144,23 +160,9 @@ export const SpreadSocialFeed: React.FC<SpreadSocialFeedProps> = ({
               <span>{data.igCaption}</span>
             </div>
 
-            <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-              HACE 2 HORAS • ESPECIAL 500 PÁGINAS
-            </div>
-
-            {/* Edit actions */}
-            <div className="pt-2 flex items-center gap-2 border-t border-slate-100">
-              <button
-                onClick={() =>
-                  onOpenEdit('Cambiar Foto de Instagram', data.igPhoto, 'image', (val) =>
-                    onUpdateData({ igPhoto: val })
-                  )
-                }
-                className="crystal-btn text-[11px] font-bold text-sky-950 px-3 py-1.5 rounded-lg flex items-center gap-1"
-              >
-                <Camera className="w-3.5 h-3.5" />
-                + Cambiar Foto
-              </button>
+            {/* Quick edit caption button */}
+            <div className="pt-1 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">Hace instantes • Cloud Sync</span>
               <button
                 onClick={() =>
                   onOpenEdit('Editar Pie de Foto', data.igCaption, 'textarea', (val) =>
@@ -179,7 +181,7 @@ export const SpreadSocialFeed: React.FC<SpreadSocialFeedProps> = ({
         {/* Bottom decorative note */}
         <div className="mt-4 pt-2 border-t border-dashed border-slate-300 flex items-center justify-between text-[11px] text-slate-500">
           <span className="font-hand text-base text-rose-700">♥ Guardado en nuestro diario de 500 págs</span>
-          <span className="font-mono text-[10px]">#Marcelololelo</span>
+          <span className="font-mono text-[10px]">#{data.recipientName}</span>
         </div>
       </div>
 
@@ -211,10 +213,10 @@ export const SpreadSocialFeed: React.FC<SpreadSocialFeedProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-1">
-                  <span className="text-xs font-bold text-slate-900">copegenz.nt</span>
+                  <span className="text-xs font-bold text-slate-900">{data.senderName}</span>
                   <CheckCircle2 className="w-3.5 h-3.5 text-sky-500 fill-sky-500 text-white" />
                 </div>
-                <div className="text-[11px] text-slate-400">@copegenz • Tu Osito</div>
+                <div className="text-[11px] text-slate-400">@{data.senderName.replace(/\s+/g, '').toLowerCase()} • Tu Amor</div>
               </div>
             </div>
             <button
@@ -246,32 +248,32 @@ export const SpreadSocialFeed: React.FC<SpreadSocialFeedProps> = ({
             {data.xBody}
           </p>
 
-          {/* Tweet two preview photos */}
+          {/* Tweet two preview photos / videos */}
           <div className="grid grid-cols-2 gap-2 rounded-xl overflow-hidden mb-3 border border-slate-200">
-            <div className="relative aspect-video group overflow-hidden bg-slate-100">
-              <img src={data.xPhoto1} alt="Tweet Pic 1" className="w-full h-full object-cover" />
+            <div className="relative aspect-video group overflow-hidden bg-slate-900">
+              <MediaRenderer src={data.xPhoto1} alt="Tweet Pic 1" className="w-full h-full object-cover" />
               <button
                 onClick={() =>
-                  onOpenEdit('Cambiar Foto 1 del Tweet', data.xPhoto1, 'image', (val) =>
+                  onOpenEdit('Cambiar Foto/Video 1 del Tweet', data.xPhoto1, 'image', (val) =>
                     onUpdateData({ xPhoto1: val })
                   )
                 }
-                className="absolute inset-0 bg-black/50 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                className="absolute inset-0 bg-black/60 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
               >
-                Cambiar
+                Cambiar foto/video
               </button>
             </div>
-            <div className="relative aspect-video group overflow-hidden bg-slate-100">
-              <img src={data.xPhoto2} alt="Tweet Pic 2" className="w-full h-full object-cover" />
+            <div className="relative aspect-video group overflow-hidden bg-slate-900">
+              <MediaRenderer src={data.xPhoto2} alt="Tweet Pic 2" className="w-full h-full object-cover" />
               <button
                 onClick={() =>
-                  onOpenEdit('Cambiar Foto 2 del Tweet', data.xPhoto2, 'image', (val) =>
+                  onOpenEdit('Cambiar Foto/Video 2 del Tweet', data.xPhoto2, 'image', (val) =>
                     onUpdateData({ xPhoto2: val })
                   )
                 }
-                className="absolute inset-0 bg-black/50 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                className="absolute inset-0 bg-black/60 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
               >
-                Cambiar
+                Cambiar foto/video
               </button>
             </div>
           </div>
@@ -308,16 +310,16 @@ export const SpreadSocialFeed: React.FC<SpreadSocialFeedProps> = ({
               <span>00:14:28</span>
             </div>
             <div className="aspect-[4/3] rounded-lg overflow-hidden border-2 border-sky-400 bg-slate-900 relative group">
-              <img src={data.cameraPhoto} alt="Digicam" className="w-full h-full object-cover" />
+              <MediaRenderer src={data.cameraPhoto} alt="Digicam" className="w-full h-full object-cover" />
               <button
                 onClick={() =>
-                  onOpenEdit('Cambiar Foto de Cámara DigiCam', data.cameraPhoto, 'image', (val) =>
+                  onOpenEdit('Cambiar Foto/Video de Cámara DigiCam', data.cameraPhoto, 'image', (val) =>
                     onUpdateData({ cameraPhoto: val })
                   )
                 }
-                className="absolute inset-0 bg-sky-950/60 text-white text-[11px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                className="absolute inset-0 bg-sky-950/70 text-white text-[11px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
               >
-                Editar Toma
+                Editar Foto/Video
               </button>
             </div>
             <div className="text-center mt-1.5 font-mono text-[9px] text-sky-900 font-bold tracking-widest">

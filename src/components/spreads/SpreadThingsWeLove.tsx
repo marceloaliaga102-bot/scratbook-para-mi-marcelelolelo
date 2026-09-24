@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tv, Film, Plus, Edit2, Heart, Sparkles, Pin } from 'lucide-react';
 import { ScrapbookStore } from '../../data/scrapbookData';
+import { MediaRenderer } from '../MediaRenderer';
 
 interface SpreadThingsWeLoveProps {
   data: ScrapbookStore;
@@ -68,15 +69,15 @@ export const SpreadThingsWeLove: React.FC<SpreadThingsWeLoveProps> = ({
                 </div>
               )}
 
-              <div className="aspect-square bg-slate-100 rounded-lg overflow-hidden mb-2 relative">
-                <img
+              <div className="aspect-square bg-slate-900 rounded-lg overflow-hidden mb-2 relative">
+                <MediaRenderer
                   src={item.url}
                   alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition"
                 />
                 <button
                   onClick={() =>
-                    onOpenEdit(`Cambiar Foto: ${item.title}`, item.url, 'image', (val) => {
+                    onOpenEdit(`Cambiar Foto/Video: ${item.title}`, item.url, 'image', (val) => {
                       const updated = [...data.thingsWeLovePhotos];
                       updated[idx].url = val;
                       onUpdateData({ thingsWeLovePhotos: updated });
@@ -137,20 +138,20 @@ export const SpreadThingsWeLove: React.FC<SpreadThingsWeLoveProps> = ({
             </div>
 
             <div className="aspect-[4/3] bg-black rounded-2xl overflow-hidden border-4 border-amber-700/60 shadow-inner relative group">
-              <img
+              <MediaRenderer
                 src={data.retroTvPhoto}
                 alt="Retro TV Memory"
                 className="w-full h-full object-cover group-hover:scale-105 transition"
               />
               <button
                 onClick={() =>
-                  onOpenEdit('Cambiar Foto de Pantalla de TV', data.retroTvPhoto, 'image', (val) =>
+                  onOpenEdit('Cambiar Foto/Video de Pantalla de TV', data.retroTvPhoto, 'image', (val) =>
                     onUpdateData({ retroTvPhoto: val })
                   )
                 }
                 className="absolute inset-0 bg-black/70 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
               >
-                Cambiar Foto de Pantalla
+                Cambiar Foto/Video
               </button>
             </div>
 
@@ -159,57 +160,50 @@ export const SpreadThingsWeLove: React.FC<SpreadThingsWeLoveProps> = ({
               <div className="w-6 h-6 rounded-full bg-amber-700 border-2 border-amber-600 shadow flex items-center justify-center text-[8px] font-mono">
                 CH
               </div>
+              <span className="text-[10px] font-mono tracking-widest text-amber-300">
+                ★ 500 PÁGINAS DE AMOR ★
+              </span>
               <div className="w-6 h-6 rounded-full bg-amber-700 border-2 border-amber-600 shadow flex items-center justify-center text-[8px] font-mono">
-                VOL
+                PWR
               </div>
-              <div className="w-3 h-3 rounded-full bg-red-600 animate-pulse shadow" />
             </div>
           </div>
 
-          {/* Film Clapperboard */}
-          <div className="bg-slate-900 text-white rounded-xl p-4 shadow-xl border-2 border-slate-700">
+          {/* Film clapperboard */}
+          <div className="bg-slate-900 text-white p-3.5 rounded-2xl shadow-xl border-2 border-slate-700 font-mono text-xs">
             {/* Clapper stripes */}
-            <div className="h-6 bg-repeating-linear-gradient-to-r from-white via-white to-black opacity-80 rounded mb-3" />
+            <div className="flex border-b-2 border-slate-700 pb-2 mb-2">
+              <div className="h-4 flex-1 bg-white transform -skew-x-12 mx-0.5" />
+              <div className="h-4 flex-1 bg-slate-950 transform -skew-x-12 mx-0.5" />
+              <div className="h-4 flex-1 bg-white transform -skew-x-12 mx-0.5" />
+              <div className="h-4 flex-1 bg-slate-950 transform -skew-x-12 mx-0.5" />
+              <div className="h-4 flex-1 bg-white transform -skew-x-12 mx-0.5" />
+            </div>
 
-            <div className="grid grid-cols-3 gap-2 text-[10px] font-mono border-b border-slate-800 pb-2 mb-2">
+            <div className="grid grid-cols-2 gap-2 text-[10px] border-b border-slate-800 pb-2 mb-2">
               <div>
-                <span className="text-slate-400 block">SCENE</span>
-                <span className="font-bold text-amber-400">{data.clapperboardData.scene}</span>
+                <span className="text-slate-400">PROD:</span> NUESTRA VIDA
               </div>
               <div>
-                <span className="text-slate-400 block">TAKE</span>
-                <span className="font-bold text-emerald-400">{data.clapperboardData.take}</span>
+                <span className="text-slate-400">ESCENA:</span> {data.clapperboardData.scene}
               </div>
               <div>
-                <span className="text-slate-400 block">DIRECTOR</span>
-                <span className="font-bold text-sky-400 truncate block">
-                  {data.recipientName} & Amor
-                </span>
+                <span className="text-slate-400">TOMA:</span> {data.clapperboardData.take}
+              </div>
+              <div>
+                <span className="text-slate-400">DIR:</span> {data.clapperboardData.directors}
               </div>
             </div>
 
-            <p
-              onClick={() =>
-                onOpenEdit(
-                  'Editar Frase de Película',
-                  data.clapperboardData.quote,
-                  'text',
-                  (val) =>
-                    onUpdateData({
-                      clapperboardData: { ...data.clapperboardData, quote: val },
-                    })
-                )
-              }
-              className="text-xs font-fancy text-amber-200 italic cursor-pointer hover:bg-slate-800 p-1 rounded"
-            >
-              {data.clapperboardData.quote}
+            <p className="font-hand text-sm text-amber-300 text-center italic">
+              "{data.clapperboardData.quote}"
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-4 pt-2 border-t border-dashed border-slate-300 flex items-center justify-between text-xs text-slate-500">
-          <span className="font-hand text-base text-rose-700">♥ Una película que nunca terminará</span>
+        <div className="mt-4 pt-2 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+          <span className="font-hand text-base text-rose-700">♥ Una película que nunca tendrá fin</span>
           <span className="font-mono text-[10px]">Página 22 / 500</span>
         </div>
       </div>

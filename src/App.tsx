@@ -9,9 +9,11 @@ import {
   ChevronRight,
   BookOpen,
   Cloud,
+  CheckCloud,
   Moon,
   Volume2,
   VolumeX,
+  Radio,
 } from 'lucide-react';
 import { ScrapbookStore, defaultScrapbookData } from './data/scrapbookData';
 import { EmpanadaRain } from './components/EmpanadaRain';
@@ -19,6 +21,7 @@ import { EditItemModal } from './components/EditItemModal';
 import { SecretLetterModal } from './components/SecretLetterModal';
 import { AdminModal } from './components/AdminModal';
 import { romanticAudio } from './utils/romanticAudio';
+import { subscribeToScrapbook, saveScrapbookToCloud } from './firebase';
 
 // Spreads
 import { SpreadCover } from './components/spreads/SpreadCover';
@@ -56,11 +59,13 @@ export default function App() {
     return defaultScrapbookData;
   });
 
-  const [currentSpread, setCurrentSpread] = useState(4); // Start on Pág 9-10 (matching Image 1!)
+  const [currentSpread, setCurrentSpread] = useState(4); // Start on Pág 9-10
   const [rainTrigger, setRainTrigger] = useState(1);
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const [isLetterOpen, setIsLetterOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [cloudSynced, setCloudSynced] = useState<boolean>(true);
+  const [syncStatusText, setSyncStatusText] = useState<string>('Sincronizado con Firebase');
 
   // Movable moon coordinates
   const [moonPos, setMoonPos] = useState({ x: 75, y: 15 });
@@ -81,14 +86,29 @@ export default function App() {
     onSave: () => {},
   });
 
-  // Sync with localStorage
+  // REALTIME FIREBASE SUBSCRIPTION:
+  // Cualquier cambio hecho desde cualquier dispositivo o navegador se actualiza en vivo
   useEffect(() => {
-    try {
-      localStorage.setItem('scrapbook_500_data', JSON.stringify(data));
-    } catch {
-      // Ignore
-    }
-  }, [data]);
+    const unsubscribe = subscribeToScrapbook(
+      (cloudData) => {
+        setData(cloudData);
+        setCloudSynced(true);
+        setSyncStatusText('Conectado en la nube');
+        try {
+          localStorage.setItem('scrapbook_500_data', JSON.stringify(cloudData));
+        } catch {
+          // ignore
+        }
+      },
+      (err) => {
+        console.warn('Firebase sync offline or local fallback:', err);
+        setCloudSynced(false);
+        setSyncStatusText('Modo local guardado');
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   // Handle music toggle
   const toggleMusic = () => {
@@ -120,8 +140,26 @@ export default function App() {
     });
   };
 
-  const updateData = (partial: Partial<ScrapbookStore>) => {
+  // Función unificada que actualiza en tiempo real localmente y en Firebase Firestore
+  const updateData = async (partial: Partial<ScrapbookStore>) => {
     setData((prev) => ({ ...prev, ...partial }));
+    setSyncStatusText('Guardando en la nube...');
+    try {
+      localStorage.setItem('scrapbook_500_data', JSON.stringify({ ...data, ...partial }));
+    } catch {
+      // ignore
+    }
+
+    try {
+      await saveScrapbookToCloud(partial);
+      setCloudSynced(true);
+      setSyncStatusText('Guardado en Firebase ✓');
+      setTimeout(() => setSyncStatusText('Conectado en la nube'), 2500);
+    } catch (err) {
+      console.error('Error al guardar en Firebase:', err);
+      setCloudSynced(false);
+      setSyncStatusText('Guardado local (Reintentando nube)');
+    }
   };
 
   // Dragging movable moon
@@ -212,6 +250,23 @@ export default function App() {
                 <span className="hidden sm:inline-block px-2 py-0.5 text-[9px] font-mono font-bold uppercase rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/40">
                   500 Páginas
                 </span>
+                {/* Cloud indicator badge */}
+                <span
+                  title={syncStatusText}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full border transition ${
+                    cloudSynced
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                      : 'bg-amber-500/20 text-amber-300 border-amber-400/30'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      cloudSynced ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                    }`}
+                  />
+                  <Cloud className="w-3 h-3" />
+                  <span className="hidden md:inline">{syncStatusText}</span>
+                </span>
               </div>
               <p className="text-[11px] text-sky-200/80 font-hand text-sm truncate max-w-[200px] sm:max-w-xs">
                 Para el osito más lindo: <span className="font-bold text-amber-300">{data.recipientName}</span>
@@ -298,13 +353,12 @@ export default function App() {
           <div className="hidden md:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-12 spine-gutter z-20 pointer-events-none" />
 
           {/* Book Pages Container */}
-          <div className="rounded-2xl overflow-hidden shadow-2xl bg-white border border-slate-300">
+          <div className="overflow-hidden rounded-2xl bg-white shadow-2xl relative">
             {currentSpread === 0 && (
               <SpreadCover
                 data={data}
-                onOpenLetter={() => setIsLetterOpen(true)}
                 onOpenEdit={openEdit}
-                onTriggerRain={triggerRain}
+                onOpenLetter={() => setIsLetterOpen(true)}
                 onUpdateData={updateData}
               />
             )}
@@ -331,6 +385,7 @@ export default function App() {
                 data={data}
                 onOpenEdit={openEdit}
                 onTriggerRain={triggerRain}
+                onUpdateData={updateData}
               />
             )}
             {currentSpread === 4 && (
@@ -444,7 +499,7 @@ export default function App() {
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
         data={data}
-        onSave={(newData) => setData(newData)}
+        onSave={(newData) => updateData(newData)}
       />
     </div>
   );

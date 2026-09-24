@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, Camera, Plus, Edit2, Heart, CheckCircle2 } from 'lucide-react';
 import { ScrapbookStore } from '../../data/scrapbookData';
+import { MediaRenderer } from '../MediaRenderer';
 
 interface SpreadTinAndDenimProps {
   data: ScrapbookStore;
@@ -56,19 +57,19 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
               <div className="grid grid-cols-2 gap-3 mb-3">
                 {/* Polaroid 1 */}
                 <div className="bg-white p-2 pb-3 rounded-lg shadow-md rotate-[-2deg] border border-slate-200 group">
-                  <div className="aspect-square bg-slate-100 rounded overflow-hidden mb-2 relative">
-                    <img
+                  <div className="aspect-square bg-slate-900 rounded overflow-hidden mb-2 relative">
+                    <MediaRenderer
                       src={data.tinPolaroid1}
                       alt="Polaroid 1"
                       className="w-full h-full object-cover group-hover:scale-105 transition"
                     />
                     <button
                       onClick={() =>
-                        onOpenEdit('Cambiar Foto de Polaroid 1', data.tinPolaroid1, 'image', (val) =>
+                        onOpenEdit('Cambiar Foto/Video de Polaroid 1', data.tinPolaroid1, 'image', (val) =>
                           onUpdateData({ tinPolaroid1: val })
                         )
                       }
-                      className="absolute inset-0 bg-sky-950/60 text-white text-[10px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                      className="absolute inset-0 bg-sky-950/70 text-white text-[10px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
                     >
                       Cambiar
                     </button>
@@ -87,19 +88,19 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
 
                 {/* Polaroid 2 */}
                 <div className="bg-white p-2 pb-3 rounded-lg shadow-md rotate-[2deg] border border-slate-200 group">
-                  <div className="aspect-square bg-slate-100 rounded overflow-hidden mb-2 relative">
-                    <img
+                  <div className="aspect-square bg-slate-900 rounded overflow-hidden mb-2 relative">
+                    <MediaRenderer
                       src={data.tinPolaroid2}
                       alt="Polaroid 2"
                       className="w-full h-full object-cover group-hover:scale-105 transition"
                     />
                     <button
                       onClick={() =>
-                        onOpenEdit('Cambiar Foto de Polaroid 2', data.tinPolaroid2, 'image', (val) =>
+                        onOpenEdit('Cambiar Foto/Video de Polaroid 2', data.tinPolaroid2, 'image', (val) =>
                           onUpdateData({ tinPolaroid2: val })
                         )
                       }
-                      className="absolute inset-0 bg-sky-950/60 text-white text-[10px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                      className="absolute inset-0 bg-sky-950/70 text-white text-[10px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
                     >
                       Cambiar
                     </button>
@@ -191,15 +192,15 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
             <div className="space-y-2 -mt-10 mb-4">
               {/* Photobooth strip */}
               <div className="bg-white p-2 rounded-lg shadow-xl border border-slate-300 rotate-[-3deg] hover:rotate-0 transition duration-300 group">
-                <div className="w-full h-24 bg-slate-100 rounded overflow-hidden mb-1 relative">
-                  <img
+                <div className="w-full h-24 bg-slate-900 rounded overflow-hidden mb-1 relative">
+                  <MediaRenderer
                     src={data.denimPocketPhoto}
                     alt="Pocket photobooth"
                     className="w-full h-full object-cover"
                   />
                   <button
                     onClick={() =>
-                      onOpenEdit('Cambiar Foto de Bolsillo', data.denimPocketPhoto, 'image', (val) =>
+                      onOpenEdit('Cambiar Foto/Video de Bolsillo', data.denimPocketPhoto, 'image', (val) =>
                         onUpdateData({ denimPocketPhoto: val })
                       )
                     }
@@ -245,19 +246,19 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
           <div className="space-y-4">
             {/* Landscape 1 */}
             <div className="bg-white p-2.5 rounded-xl shadow-md border border-slate-200 group">
-              <div className="aspect-[16/10] vector-landscape-sky rounded-lg overflow-hidden relative mb-2">
-                <img
+              <div className="aspect-[16/10] vector-landscape-sky rounded-lg overflow-hidden relative mb-2 bg-slate-900">
+                <MediaRenderer
                   src={data.denimLandscape1}
                   alt="Landscape 1"
                   className="w-full h-full object-cover group-hover:scale-105 transition"
                 />
                 <button
                   onClick={() =>
-                    onOpenEdit('Cambiar Foto de Paisaje 1', data.denimLandscape1, 'image', (val) =>
+                    onOpenEdit('Cambiar Foto/Video Paisaje 1', data.denimLandscape1, 'image', (val) =>
                       onUpdateData({ denimLandscape1: val })
                     )
                   }
-                  className="absolute inset-0 bg-sky-950/60 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                  className="absolute inset-0 bg-sky-950/60 text-white text-[11px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
                 >
                   Cambiar
                 </button>
@@ -268,7 +269,7 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
                     onUpdateData({ denimLandscape1Title: val })
                   )
                 }
-                className="text-xs font-bold text-slate-800 hover:text-sky-600 cursor-pointer text-center"
+                className="font-hand text-sm font-bold text-slate-800 cursor-pointer hover:text-sky-600"
               >
                 {data.denimLandscape1Title}
               </div>
@@ -276,19 +277,19 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
 
             {/* Landscape 2 */}
             <div className="bg-white p-2.5 rounded-xl shadow-md border border-slate-200 group">
-              <div className="aspect-[16/10] vector-landscape-sky rounded-lg overflow-hidden relative mb-2">
-                <img
+              <div className="aspect-[16/10] vector-landscape-sky rounded-lg overflow-hidden relative mb-2 bg-slate-900">
+                <MediaRenderer
                   src={data.denimLandscape2}
                   alt="Landscape 2"
                   className="w-full h-full object-cover group-hover:scale-105 transition"
                 />
                 <button
                   onClick={() =>
-                    onOpenEdit('Cambiar Foto de Paisaje 2', data.denimLandscape2, 'image', (val) =>
+                    onOpenEdit('Cambiar Foto/Video Paisaje 2', data.denimLandscape2, 'image', (val) =>
                       onUpdateData({ denimLandscape2: val })
                     )
                   }
-                  className="absolute inset-0 bg-sky-950/60 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                  className="absolute inset-0 bg-sky-950/60 text-white text-[11px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
                 >
                   Cambiar
                 </button>
@@ -299,7 +300,7 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
                     onUpdateData({ denimLandscape2Title: val })
                   )
                 }
-                className="text-xs font-bold text-slate-800 hover:text-sky-600 cursor-pointer text-center"
+                className="font-hand text-sm font-bold text-slate-800 cursor-pointer hover:text-sky-600"
               >
                 {data.denimLandscape2Title}
               </div>
@@ -307,9 +308,11 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
           </div>
         </div>
 
-        {/* Handcrafted footer badge */}
-        <div className="mt-4 pt-2 border-t border-dashed border-slate-300 flex items-center justify-between text-xs text-slate-500">
-          <span className="font-hand text-base text-blue-700">♥ Hecho a mano con todo mi cariño</span>
+        {/* Footer note */}
+        <div className="mt-3 flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200">
+          <span className="font-hand text-base text-sky-800">
+            ♥ Guardado en nuestro bolsillo de amor
+          </span>
           <span className="font-mono text-[10px]">Página 18 / 500</span>
         </div>
       </div>

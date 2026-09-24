@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, Save, RotateCcw, Cloud, Music, Image, Sliders, Check } from 'lucide-react';
+import { X, Lock, Save, RotateCcw, Cloud, Music, Image, Sliders, Check, Sparkles } from 'lucide-react';
 import { ScrapbookStore, defaultScrapbookData } from '../data/scrapbookData';
 
 interface AdminModalProps {
@@ -20,11 +20,15 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [formData, setFormData] = useState<ScrapbookStore>(data);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Sync if prop updates
+  React.useEffect(() => {
+    setFormData(data);
+  }, [data]);
+
   if (!isOpen) return null;
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Default pass or simple check
     if (password === 'osito' || password === '1234' || password === 'amor' || password.length >= 3) {
       setIsAuthenticated(true);
     } else {
@@ -49,7 +53,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
       <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border-2 border-sky-300 max-h-[90vh] overflow-y-auto custom-scroll">
         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
           <div className="flex items-center gap-2.5">
@@ -58,9 +62,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-bold font-fancy text-sky-950">
-                Panel de Administración Exclusivo
+                Panel de Administración en la Nube
               </h2>
-              <p className="text-xs text-slate-500">Personaliza tus 500 páginas en tiempo real</p>
+              <p className="text-xs text-slate-500">
+                Conectado con Firebase Firestore • Sincronización en vivo
+              </p>
             </div>
           </div>
           <button
@@ -73,7 +79,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
         {!isAuthenticated ? (
           <form onSubmit={handleLogin} className="py-8 text-center max-w-sm mx-auto space-y-4">
-            <div className="w-16 h-16 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center mx-auto mb-2 border border-sky-200">
+            <div className="w-16 h-16 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center mx-auto mb-2 border border-sky-200 shadow-inner">
               <Lock className="w-8 h-8" />
             </div>
             <h3 className="font-bold text-slate-800 text-lg">Acceso Protegido</h3>
@@ -97,6 +103,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           </form>
         ) : (
           <div className="py-4 space-y-6">
+            {/* Cloud Status Banner */}
+            <div className="bg-emerald-50 border border-emerald-300 p-3.5 rounded-2xl flex items-center justify-between text-xs text-emerald-950">
+              <div className="flex items-center gap-2 font-medium">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Base de datos en la nube activa (Firebase Firestore)</span>
+              </div>
+              <span className="font-mono text-[10px] bg-emerald-200/60 px-2 py-0.5 rounded-md font-bold text-emerald-800">
+                LIVE SYNC
+              </span>
+            </div>
+
             {/* General parameters */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-sky-900 border-b pb-1">
@@ -188,7 +205,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 <Cloud className="w-5 h-5 text-sky-600" />
                 <div>
                   <div className="text-xs font-bold text-sky-950">Sincronización en la Nube</div>
-                  <div className="text-[11px] text-sky-700">Tus cambios se guardan automáticamente</div>
+                  <div className="text-[11px] text-sky-700">Tus cambios se guardan y sincronizan en vivo</div>
                 </div>
               </div>
               <button
@@ -213,7 +230,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               >
                 {saveSuccess ? (
                   <>
-                    <Check className="w-4 h-4 text-emerald-700" /> ¡Guardado con Éxito!
+                    <Check className="w-4 h-4 text-emerald-700" /> ¡Guardado en la Nube!
                   </>
                 ) : (
                   <>
