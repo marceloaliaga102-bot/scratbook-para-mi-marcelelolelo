@@ -21,6 +21,7 @@ import { EditItemModal } from './components/EditItemModal';
 import { SecretLetterModal } from './components/SecretLetterModal';
 import { AdminModal } from './components/AdminModal';
 import { MusicPlayer } from './components/MusicPlayer';
+import { BookCoverIntro } from './components/BookCoverIntro';
 import { romanticAudio } from './utils/romanticAudio';
 import { subscribeToScrapbook, saveScrapbookToCloud } from './firebase';
 import { SongItem } from './types';
@@ -62,6 +63,7 @@ export default function App() {
   });
 
   const [currentSpread, setCurrentSpread] = useState(4); // Start on Pág 9-10
+  const [isBookOpened, setIsBookOpened] = useState(false); // Pre-book closed cover intro screen
   const [rainTrigger, setRainTrigger] = useState(1);
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const [isLetterOpen, setIsLetterOpen] = useState(false);
@@ -382,6 +384,16 @@ export default function App() {
               </span>
             </button>
 
+            {/* Close / Return to Cover Button */}
+            <button
+              onClick={() => setIsBookOpened(false)}
+              className="p-2 sm:px-3 sm:py-2 rounded-full bg-white/10 hover:bg-white/20 text-amber-200 border border-amber-300/20 text-xs font-bold flex items-center gap-1.5 transition"
+              title="Volver a la Portada del Libro"
+            >
+              <BookOpen className="w-4 h-4 text-amber-300" />
+              <span className="hidden sm:inline">Portada</span>
+            </button>
+
             {/* Admin Settings Button */}
             <button
               onClick={() => setIsAdminOpen(true)}
@@ -554,6 +566,24 @@ export default function App() {
           </button>
         </div>
       </main>
+
+      {/* Pre-book Intro Screen (Portada Cerrada antes de abrir el libro) */}
+      {!isBookOpened && (
+        <BookCoverIntro
+          recipientName={data.recipientName}
+          senderName={data.senderName}
+          coverTitle={data.coverTitle}
+          coverSubtitle={data.coverSubtitle}
+          onOpenBook={() => {
+            setIsBookOpened(true);
+            if (!isPlayingMusic) {
+              romanticAudio.start();
+              setIsPlayingMusic(true);
+            }
+          }}
+          onTriggerRain={triggerRain}
+        />
+      )}
 
       {/* Interactive Music Player with MP3 upload, Spotify, YouTube and Cloud SQL persistence */}
       <MusicPlayer
