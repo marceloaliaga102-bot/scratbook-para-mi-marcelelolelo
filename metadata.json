@@ -1,0 +1,6 @@
+{
+  "name": "Nuestro Scrapbook - 500 Páginas de Amor",
+  "description": "Scrapbook interactivo de colección de 500 páginas para Marcelololelo con lluvia de empanadas, vinilo musical, cámara retro, cajita de recuerdos, bolsillos denim y momentos especiales.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
