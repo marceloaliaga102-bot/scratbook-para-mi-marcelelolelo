@@ -511,6 +511,11 @@ export default function App() {
                 data={data}
                 isPlayingMusic={isPlayingMusic}
                 onToggleMusic={toggleMusic}
+                onPauseBackgroundMusic={() => {
+                  if (isPlayingMusic) {
+                    toggleMusic();
+                  }
+                }}
                 onOpenEdit={openEdit}
                 onTriggerRain={triggerRain}
                 onUpdateData={updateData}

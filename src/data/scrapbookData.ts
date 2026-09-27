@@ -1,4 +1,4 @@
-import { SongItem, CustomPage, GameConfig } from '../types';
+import { SongItem, CustomPage, GameConfig, MemorySongItem, GameItem } from '../types';
 
 export interface ScrapbookStore {
   // Common details
@@ -82,7 +82,8 @@ export interface ScrapbookStore {
   mosaicTitle: string;
   mosaicBody: string;
   mosaicPhotos: string[];
-  gamesList: Array<{ title: string; desc: string }>;
+  gamesList: Array<{ title: string; desc: string; url?: string; id?: string }>;
+  songsThatRemindMeOfHim?: MemorySongItem[];
 
   songs?: SongItem[];
 }
@@ -199,9 +200,58 @@ export const defaultScrapbookData: ScrapbookStore = {
     'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=300&auto=format&fit=crop',
   ],
   gamesList: [
-    { title: 'Minecraft', desc: 'Nuestra casita de madera y granja de flores 🏡' },
-    { title: 'It Takes Two', desc: 'Superando cada nivel en equipo perfecto 🧩' },
-    { title: 'Roblox / Party', desc: 'Risas sin parar cuando perdemos juntos 🎮' },
+    {
+      id: 'game-minecraft',
+      title: 'Minecraft',
+      desc: 'Nuestra casita de madera, los perritos y la granja de flores 🏡',
+      url: 'https://classic.minecraft.net/',
+    },
+    {
+      id: 'game-roblox',
+      title: 'Roblox / Party',
+      desc: 'Risas sin parar cuando perdemos en los obbies y minijuegos juntos 🎮',
+      url: 'https://www.roblox.com/',
+    },
+    {
+      id: 'game-ittakestwo',
+      title: 'It Takes Two',
+      desc: 'Superando cada nivel en equipo perfecto, Cody & May 🧩',
+      url: 'https://store.steampowered.com/app/1426210/It_Takes_Two/',
+    },
+  ],
+  songsThatRemindMeOfHim: [
+    {
+      id: 'mem-1',
+      title: 'Melting',
+      artist: 'Kali Uchis',
+      url: 'https://www.youtube.com/watch?v=xIsCh-BA8Ew',
+      note: 'Tu carita hermosa cada vez que me miras y me derrito completo ♡',
+      type: 'youtube',
+    },
+    {
+      id: 'mem-2',
+      title: 'Until I Found You',
+      artist: 'Stephen Sanchez',
+      url: 'https://www.youtube.com/watch?v=GxldQ9eX2wo',
+      note: 'Porque antes de conocerte no sabía lo que era el amor sincero.',
+      type: 'youtube',
+    },
+    {
+      id: 'mem-3',
+      title: 'Golden Hour',
+      artist: 'JVKE',
+      url: 'https://www.youtube.com/watch?v=PEM0Vs8jf1w',
+      note: 'Nuestras tardes doradas caminando juntos y mirándonos.',
+      type: 'youtube',
+    },
+    {
+      id: 'mem-4',
+      title: 'Yellow',
+      artist: 'Coldplay',
+      url: 'https://www.youtube.com/watch?v=yKNxeF4KMsY',
+      note: '"Look at the stars, look how they shine for you..."',
+      type: 'youtube',
+    },
   ],
   gamesConfig: [
     { id: 'g1', title: 'Minecraft', desc: 'Nuestra casita de madera y granja de flores 🏡', icon: 'Gamepad2', url: 'https://classic.minecraft.net/', pageNumber: 6, active: true },

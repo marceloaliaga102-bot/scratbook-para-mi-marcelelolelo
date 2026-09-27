@@ -68,6 +68,23 @@ export interface SongItem {
   duration?: string;
 }
 
+export interface MemorySongItem {
+  id: string;
+  title: string;
+  artist?: string;
+  url: string;
+  note?: string; // Dedicatoria o por qué me recuerda a ti
+  type?: 'youtube' | 'spotify' | 'audio' | 'link';
+}
+
+export interface GameItem {
+  id: string;
+  title: string;
+  desc: string;
+  url: string;
+  icon?: string;
+}
+
 export interface ThemeSettings {
   mode: 'auto' | 'night' | 'sunset' | 'candlelight';
   fontFamily: 'Caveat' | 'Dancing Script' | 'Playfair Display' | 'Quicksand' | 'Great Vibes';
