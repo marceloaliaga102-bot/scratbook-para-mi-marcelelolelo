@@ -18,7 +18,9 @@ import {
   Trash2,
   FileText,
   Heart,
-  Palette
+  Palette,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { ScrapbookStore, defaultScrapbookData } from '../data/scrapbookData';
 import { SongItem, GameConfig, CustomPage } from '../types';
@@ -46,6 +48,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'pages' | 'music' | 'games' | 'security'>('general');
   const [passwordInput, setPasswordInput] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSecurityPassword, setShowSecurityPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ScrapbookStore>(data);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -69,7 +73,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setAuthError(null);
       onLoginSuccess();
     } else {
-      setAuthError('Contraseña incorrecta. (Por defecto: osito)');
+      setAuthError('Contraseña incorrecta. Inténtalo de nuevo.');
     }
   };
 
@@ -131,8 +135,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             </div>
             <h3 className="font-bold text-slate-800 text-lg">Acceso de Administrador</h3>
             <p className="text-xs text-slate-500">
-              Solo tú puedes editar los textos, páginas y música del libro. Ingresa tu contraseña (por defecto:{' '}
-              <span className="font-mono font-bold text-rose-600">osito</span>).
+              Solo tú puedes editar los textos, páginas y música del libro. Ingresa tu contraseña de acceso.
             </p>
             {authError && (
               <p className="text-xs text-rose-600 font-bold bg-rose-50 p-2 rounded-lg border border-rose-200">
@@ -140,14 +143,24 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </p>
             )}
             <form onSubmit={handleLogin} className="space-y-3">
-              <input
-                type="password"
-                placeholder="Contraseña..."
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-rose-400 outline-none text-center"
-                autoFocus
-              />
+              <div className="relative">
+                <input
+                  type={showLoginPassword ? 'text' : 'password'}
+                  placeholder="Contraseña de acceso..."
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  className="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-rose-400 outline-none text-center"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  title={showLoginPassword ? 'Ocultar' : 'Mostrar'}
+                >
+                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               <button
                 type="submit"
                 className="w-full py-2.5 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-bold rounded-xl text-sm shadow-md transition"
@@ -461,12 +474,23 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Cambiar Contraseña de Administrador
                     </label>
-                    <input
-                      type="text"
-                      value={formData.adminPassword || 'amor'}
-                      onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:border-rose-400 outline-none"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecurityPassword ? 'text' : 'password'}
+                        value={formData.adminPassword || ''}
+                        onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
+                        placeholder="Nueva contraseña..."
+                        className="w-full px-3 py-2 pr-10 rounded-xl border border-slate-300 text-sm focus:border-rose-400 outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecurityPassword(!showSecurityPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                        title={showSecurityPassword ? 'Ocultar' : 'Mostrar'}
+                      >
+                        {showSecurityPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                     <p className="text-[10px] text-slate-500 mt-1">
                       Solo quien conozca esta contraseña podrá editar los textos y páginas del libro.
                     </p>
