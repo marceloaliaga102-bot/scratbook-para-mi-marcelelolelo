@@ -26,6 +26,11 @@ class RomanticAudioEngine {
   ];
 
   private chordIndex = 0;
+  private volume = 0.08;
+
+  public setVolume(vol: number) {
+    this.volume = Math.max(0, Math.min(1, vol)) * 0.15;
+  }
 
   public start() {
     if (this.isPlaying) return;
@@ -76,7 +81,7 @@ class RomanticAudioEngine {
       osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
 
       gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.08, this.ctx.currentTime + 0.1);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.001, this.volume), this.ctx.currentTime + 0.1);
       gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
 
       osc.connect(gain);

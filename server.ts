@@ -12,7 +12,7 @@ import {
   deleteSongItem,
 } from './src/db/scrapbook.ts';
 import { getOrCreateUser } from './src/db/users.ts';
-import { requireAuth, optionalAuth, AuthRequest } from './src/middleware/auth.ts';
+import { requireAuth, optionalAuth, type AuthRequest } from './src/middleware/auth.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,10 +20,28 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 const DATA_FILE = path.join(__dirname, 'cloud_book_data.json');
+const AUDIO_UPLOAD_DIR = path.join(__dirname, 'public', 'uploads', 'audio');
+
+if (!fs.existsSync(AUDIO_UPLOAD_DIR)) {
+  fs.mkdirSync(AUDIO_UPLOAD_DIR, { recursive: true });
+}
 
 // Allow large payloads for media uploads (photos, videos, audio up to 50MB)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Serve uploaded audio files directly
+app.use('/uploads/audio', express.static(AUDIO_UPLOAD_DIR));
+
+// Download complete project archive for GitHub / Vercel
+app.get('/nuestro-scrapbook.zip', (req, res) => {
+  const zipPath = path.join(__dirname, 'public', 'nuestro-scrapbook.zip');
+  if (fs.existsSync(zipPath)) {
+    res.download(zipPath, 'nuestro-scrapbook.zip');
+  } else {
+    res.status(404).send('ZIP no encontrado');
+  }
+});
 
 // Cloud SQL Scrapbook persistence endpoints
 app.get('/api/book-data', async (req, res) => {
@@ -37,17 +55,19 @@ app.get('/api/book-data', async (req, res) => {
 
     const book = await getScrapbook('main_book');
     if (book) {
+      const dbPagesData: any = book.pages || {};
       return res.json({
         ...fileData,
-        title: book.title,
-        subtitle: book.subtitle || '',
-        recipientName: book.recipientName || '',
-        senderName: book.senderName || '',
-        specialDate: book.specialDate || '',
-        theme: book.theme || {},
-        pages: book.pages || [],
-        songs: (Array.isArray(book.songs) && book.songs.length > 0) ? book.songs : (fileData.songs || []),
-        surpriseQuotes: book.surpriseQuotes || [],
+        title: fileData.title || book.title,
+        subtitle: fileData.subtitle || book.subtitle || '',
+        recipientName: fileData.recipientName || book.recipientName || '',
+        senderName: fileData.senderName || book.senderName || '',
+        specialDate: fileData.specialDate || book.specialDate || '',
+        theme: fileData.theme || book.theme || {},
+        pages: fileData.pages || (Array.isArray(book.pages) ? book.pages : dbPagesData.list || []),
+        songs: Array.isArray(fileData.songs) ? fileData.songs : (Array.isArray(book.songs) ? book.songs : []),
+        customPages: fileData.customPages || dbPagesData.customPages || {},
+        surpriseQuotes: fileData.surpriseQuotes || book.surpriseQuotes || [],
         updatedAt: book.updatedAt,
       });
     }
@@ -96,13 +116,16 @@ app.post('/api/book-data', optionalAuth, async (req: AuthRequest, res) => {
     // Save merged to PostgreSQL via Drizzle
     const saved = await upsertScrapbook({
       bookKey: 'main_book',
-      title: merged.title || 'Nuestro Scrapbook',
-      subtitle: merged.subtitle ?? '',
+      title: merged.coverTitle || merged.title || 'Nuestro Scrapbook',
+      subtitle: merged.coverSubtitle || merged.subtitle || '',
       recipientName: merged.recipientName ?? '',
       senderName: merged.senderName ?? '',
       specialDate: merged.specialDate ?? '',
       theme: merged.theme ?? {},
-      pages: merged.pages ?? [],
+      pages: {
+        list: Array.isArray(merged.pages) ? merged.pages : [],
+        customPages: merged.customPages || {},
+      },
       songs: merged.songs ?? [],
       surpriseQuotes: merged.surpriseQuotes ?? [],
     });
@@ -179,6 +202,25 @@ app.post('/api/songs', optionalAuth, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Missing required song fields (title, url)' });
     }
 
+    let finalUrl = url;
+    // If user uploaded a local audio file as base64, save to static audio folder
+    if (type === 'local' && url.startsWith('data:audio')) {
+      const matches = url.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches) {
+        const mimeType = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        let ext = 'mp3';
+        if (mimeType.includes('wav')) ext = 'wav';
+        else if (mimeType.includes('ogg')) ext = 'ogg';
+        else if (mimeType.includes('m4a') || mimeType.includes('mp4')) ext = 'm4a';
+
+        const filename = `song-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
+        const filepath = path.join(AUDIO_UPLOAD_DIR, filename);
+        fs.writeFileSync(filepath, buffer);
+        finalUrl = `/uploads/audio/${filename}`;
+      }
+    }
+
     let userId: number | undefined = undefined;
     if (req.user?.uid) {
       const user = await getOrCreateUser(req.user.uid, req.user.email || '');
@@ -188,7 +230,7 @@ app.post('/api/songs', optionalAuth, async (req: AuthRequest, res) => {
     const newSong = await saveSongItem({
       title,
       artist: artist || 'Artista Desconocido',
-      url,
+      url: finalUrl,
       type: type || 'local',
       duration: duration || '3:30',
       userId,
@@ -199,6 +241,14 @@ app.post('/api/songs', optionalAuth, async (req: AuthRequest, res) => {
     console.error('Error adding song:', error);
     return res.status(500).json({ error: 'Failed to save song' });
   }
+});
+
+app.get('/api/audio/:filename', (req, res) => {
+  const filepath = path.join(AUDIO_UPLOAD_DIR, req.params.filename);
+  if (fs.existsSync(filepath)) {
+    return res.sendFile(filepath);
+  }
+  return res.status(404).json({ error: 'Audio file not found' });
 });
 
 app.delete('/api/songs/:id', async (req, res) => {
@@ -218,6 +268,16 @@ app.delete('/api/songs/:id', async (req, res) => {
       // Song might be local or external, still succeed
       await deleteSongItem(rawId);
     }
+
+    // If it was a local file in /uploads/audio, delete it
+    if (url && typeof url === 'string' && url.includes('/uploads/audio/')) {
+      const filename = path.basename(url);
+      const filepath = path.join(AUDIO_UPLOAD_DIR, filename);
+      if (fs.existsSync(filepath)) {
+        try { fs.unlinkSync(filepath); } catch {}
+      }
+    }
+
     return res.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting song:', error);
@@ -241,7 +301,10 @@ app.post('/api/users/sync', requireAuth, async (req: AuthRequest, res) => {
 
 // Vite middleware integration
 async function startServer() {
-  if (process.env.NODE_ENV === 'production' && fs.existsSync(path.join(__dirname, 'dist'))) {
+  const isProd = process.env.NODE_ENV === 'production' || process.env.npm_lifecycle_event === 'start';
+  const hasDist = fs.existsSync(path.join(__dirname, 'dist'));
+
+  if (isProd && hasDist) {
     app.use(express.static(path.join(__dirname, 'dist')));
     app.get('*', (req, res) => {
       res.sendFile(path.join(__dirname, 'dist', 'index.html'));
@@ -253,6 +316,22 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+
+    // Fallback handler for all SPA routes
+    app.use('*', async (req, res, next) => {
+      if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+        return next();
+      }
+      try {
+        const url = req.originalUrl;
+        const templatePath = path.join(__dirname, 'index.html');
+        let template = fs.readFileSync(templatePath, 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e) {
+        next(e);
+      }
+    });
   }
 
   app.listen(PORT, '0.0.0.0', () => {

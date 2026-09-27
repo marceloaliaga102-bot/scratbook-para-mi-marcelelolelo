@@ -31,8 +31,16 @@ export const SpreadAchievements: React.FC<SpreadAchievementsProps> = ({
           </span>
         </div>
 
-        <p className="font-hand text-lg text-slate-800 font-bold mb-4">
-          "Mi razón de orgullo — Cada meta que cumples alegra mi vida entera."
+        <p
+          onClick={() =>
+            onOpenEdit('Editar Frase de Logros', data.achievementsSubtitle || 'Mi razón de orgullo — Cada meta que cumples alegra mi vida entera.', 'textarea', (val) =>
+              onUpdateData({ achievementsSubtitle: val })
+            )
+          }
+          className="font-hand text-lg text-slate-800 font-bold mb-4 cursor-pointer hover:bg-amber-100/60 p-1.5 rounded transition"
+          title="Clic para editar esta dedicatoria"
+        >
+          "{data.achievementsSubtitle || 'Mi razón de orgullo — Cada meta que cumples alegra mi vida entera.'}"
         </p>
 
         {/* Photobooth achievements strip & Retro Phone Display */}
@@ -42,14 +50,13 @@ export const SpreadAchievements: React.FC<SpreadAchievementsProps> = ({
             {data.achievements.map((ach, idx) => (
               <div
                 key={ach.id}
-                onClick={() => {
-                  const newTitle = prompt('Editar nombre de logro:', ach.title);
-                  if (newTitle) {
+                onClick={() =>
+                  onOpenEdit('Editar Nombre de Logro', ach.title, 'text', (newTitle) => {
                     const updated = [...data.achievements];
                     updated[idx] = { ...updated[idx], title: newTitle };
                     onUpdateData({ achievements: updated });
-                  }
-                }}
+                  })
+                }
                 className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-200 text-center hover:shadow-md cursor-pointer transition hover:border-amber-400 group"
               >
                 <div className="w-8 h-8 mx-auto rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mb-1 group-hover:scale-110 transition">
@@ -108,15 +115,16 @@ export const SpreadAchievements: React.FC<SpreadAchievementsProps> = ({
         <div className="mt-4 pt-2 border-t border-dashed border-slate-300 flex items-center justify-between text-xs text-slate-500">
           <button
             onClick={() => {
-              const newAch = prompt('Añadir nuevo logro de tu osito:');
-              if (newAch) {
-                onUpdateData({
-                  achievements: [
-                    ...data.achievements,
-                    { id: 'a-' + Date.now(), title: newAch, icon: 'star' },
-                  ],
-                });
-              }
+              onOpenEdit('Añadir Nuevo Logro', 'Título del logro...', 'text', (newAch) => {
+                if (newAch) {
+                  onUpdateData({
+                    achievements: [
+                      ...data.achievements,
+                      { id: 'a-' + Date.now(), title: newAch, icon: 'star' },
+                    ],
+                  });
+                }
+              });
             }}
             className="text-sky-700 hover:text-sky-900 font-semibold flex items-center gap-1"
           >
@@ -185,15 +193,15 @@ export const SpreadAchievements: React.FC<SpreadAchievementsProps> = ({
               {data.birthdayNotes.map((note, idx) => (
                 <div
                   key={idx}
-                  onClick={() => {
-                    const newNote = prompt('Editar nota:', note);
-                    if (newNote) {
+                  onClick={() =>
+                    onOpenEdit(`Editar Nota #${idx + 1}`, note, 'text', (newNote) => {
                       const updated = [...data.birthdayNotes];
                       updated[idx] = newNote;
                       onUpdateData({ birthdayNotes: updated });
-                    }
-                  }}
+                    })
+                  }
                   className="cursor-pointer hover:text-rose-700 hover:bg-rose-50 p-1 rounded transition"
+                  title="Clic para editar nota"
                 >
                   ✦ {note}
                 </div>

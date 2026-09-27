@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Heart, Sparkles, BookOpen, Music, Volume2, VolumeX, ArrowRight, Star } from 'lucide-react';
+import { Heart, Sparkles, BookOpen, Music, Volume2, VolumeX, ArrowRight, Star, Lock, Unlock, Share2 } from 'lucide-react';
 import { romanticAudio } from '../utils/audio';
 
 interface BookCoverIntroProps {
@@ -9,6 +9,11 @@ interface BookCoverIntroProps {
   coverSubtitle: string;
   onOpenBook: () => void;
   onTriggerRain?: () => void;
+  onOpenEdit?: (title: string, value: string, type: 'image' | 'text' | 'textarea', onSave: (val: string) => void) => void;
+  onUpdateCover?: (partial: { coverTitle?: string; coverSubtitle?: string; recipientName?: string; senderName?: string }) => void;
+  onOpenAdmin?: () => void;
+  isAdminLoggedIn?: boolean;
+  onOpenShare?: () => void;
 }
 
 export const BookCoverIntro: React.FC<BookCoverIntroProps> = ({
@@ -18,6 +23,11 @@ export const BookCoverIntro: React.FC<BookCoverIntroProps> = ({
   coverSubtitle,
   onOpenBook,
   onTriggerRain,
+  onOpenEdit,
+  onUpdateCover,
+  onOpenAdmin,
+  isAdminLoggedIn = false,
+  onOpenShare,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isOpening, setIsOpening] = useState(false);
@@ -91,16 +101,46 @@ export const BookCoverIntro: React.FC<BookCoverIntroProps> = ({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:32px_32px] opacity-60" />
       </div>
 
-      {/* Top Floating Controls (Sound & Emoticons) */}
+      {/* Top Floating Controls (Sound, Admin & Actions) */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30 flex items-center gap-2">
         {onTriggerRain && (
           <button
             onClick={onTriggerRain}
-            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition hover:scale-105"
+            className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-amber-200 text-xs font-bold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition hover:scale-105"
             title="¡Lluvia de empanadas doradas!"
           >
             <span className="text-sm">🥟</span>
-            <span className="hidden sm:inline">Lluvia de Empanadas</span>
+            <span className="hidden sm:inline">Empanadas</span>
+          </button>
+        )}
+
+        {onOpenAdmin && (
+          <button
+            onClick={onOpenAdmin}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition hover:scale-105 border ${
+              isAdminLoggedIn
+                ? 'bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-200 border-emerald-400/50'
+                : 'bg-white/10 hover:bg-white/20 text-amber-200 border-white/20'
+            }`}
+            title="Panel de Administrador para editar textos"
+          >
+            {isAdminLoggedIn ? (
+              <Unlock className="w-3.5 h-3.5 text-emerald-300" />
+            ) : (
+              <Lock className="w-3.5 h-3.5 text-amber-300" />
+            )}
+            <span>{isAdminLoggedIn ? 'Modo Editor' : 'Admin'}</span>
+          </button>
+        )}
+
+        {onOpenShare && (
+          <button
+            onClick={onOpenShare}
+            className="px-3 py-1.5 rounded-full bg-rose-500/30 hover:bg-rose-500/40 border border-rose-400/50 text-rose-200 text-xs font-bold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition hover:scale-105"
+            title="Compartir enlace para celular con Marcelololelo"
+          >
+            <Share2 className="w-3.5 h-3.5 text-rose-300" />
+            <span className="hidden sm:inline">Compartir</span>
           </button>
         )}
 
@@ -110,7 +150,7 @@ export const BookCoverIntro: React.FC<BookCoverIntroProps> = ({
           title={isMuted ? 'Activar Sonidos' : 'Silenciar Sonidos'}
         >
           {isMuted ? <VolumeX className="w-4 h-4 text-rose-300" /> : <Volume2 className="w-4 h-4 text-emerald-300" />}
-          <span className="hidden sm:inline">{isMuted ? 'Silencio' : 'Sonido On'}</span>
+          <span className="hidden sm:inline">{isMuted ? 'Silencio' : 'Sonido'}</span>
         </button>
       </div>
 
@@ -326,14 +366,30 @@ export const BookCoverIntro: React.FC<BookCoverIntroProps> = ({
 
                 {/* Main Foil Title */}
                 <h1
-                  className="text-3xl sm:text-4xl font-extrabold gold-foil-text tracking-wide drop-shadow-lg leading-tight"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenEdit?.('Editar Título de la Portada', coverTitle || 'Nuestro Scrapbook', 'text', (val) =>
+                      onUpdateCover?.({ coverTitle: val })
+                    );
+                  }}
+                  className="text-3xl sm:text-4xl font-extrabold gold-foil-text tracking-wide drop-shadow-lg leading-tight cursor-pointer hover:scale-105 transition-transform"
                   style={{ fontFamily: "'Dancing Script', cursive" }}
+                  title="Clic para editar título"
                 >
                   {coverTitle || 'Nuestro Scrapbook'}
                 </h1>
 
                 {/* Subtitle */}
-                <p className="text-xs sm:text-sm text-sky-200/90 font-hand tracking-wide mt-1 max-w-xs mx-auto drop-shadow truncate">
+                <p
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenEdit?.('Editar Subtítulo', coverSubtitle || '500 Páginas de momentos que duran para siempre', 'text', (val) =>
+                      onUpdateCover?.({ coverSubtitle: val })
+                    );
+                  }}
+                  className="text-xs sm:text-sm text-sky-200/90 font-hand tracking-wide mt-1 max-w-xs mx-auto drop-shadow truncate cursor-pointer hover:underline"
+                  title="Clic para editar subtítulo"
+                >
                   {coverSubtitle || '500 Páginas de momentos que duran para siempre'}
                 </p>
               </div>
@@ -358,12 +414,34 @@ export const BookCoverIntro: React.FC<BookCoverIntroProps> = ({
                 <div className="bg-black/55 backdrop-blur-md border border-amber-400/40 rounded-xl p-3 mb-3 shadow-[0_8px_20px_rgba(0,0,0,0.5)]">
                   <p className="text-xs sm:text-sm text-slate-200">
                     Para el amor de mi vida:{' '}
-                    <span className="font-extrabold text-amber-300 font-fancy text-base sm:text-lg">
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenEdit?.('Editar Nombre de tu Pareja', recipientName, 'text', (val) =>
+                          onUpdateCover?.({ recipientName: val })
+                        );
+                      }}
+                      className="font-extrabold text-amber-300 font-fancy text-base sm:text-lg cursor-pointer hover:underline"
+                      title="Clic para editar nombre"
+                    >
                       {recipientName || 'Marcelololelo'}
                     </span>
                   </p>
                   <p className="text-[11px] sm:text-xs text-rose-300 font-hand text-sm mt-0.5">
-                    De: <span className="font-bold">{senderName || 'Tu Niña Hermosa'}</span> ♥
+                    De:{' '}
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenEdit?.('Editar Tu Nombre', senderName, 'text', (val) =>
+                          onUpdateCover?.({ senderName: val })
+                        );
+                      }}
+                      className="font-bold cursor-pointer hover:underline"
+                      title="Clic para editar tu nombre"
+                    >
+                      {senderName || 'Tu Niña Hermosa'}
+                    </span>{' '}
+                    ♥
                   </p>
                 </div>
 
@@ -392,6 +470,21 @@ export const BookCoverIntro: React.FC<BookCoverIntroProps> = ({
             <span>Abrir Nuestro Libro de 500 Páginas</span>
             <Sparkles className="w-4 h-4 text-amber-600 animate-pulse" />
           </button>
+
+          {onOpenEdit && (
+            <button
+              onClick={() =>
+                onOpenEdit('Editar Título del Libro', coverTitle, 'text', (val) =>
+                  onUpdateCover?.({ coverTitle: val })
+                )
+              }
+              className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-amber-200 text-xs font-bold flex items-center gap-1.5 transition shadow"
+              title="Personalizar títulos y nombres"
+            >
+              <span>✎</span>
+              <span>Editar Portada</span>
+            </button>
+          )}
         </div>
 
         {/* Subtle hint text */}

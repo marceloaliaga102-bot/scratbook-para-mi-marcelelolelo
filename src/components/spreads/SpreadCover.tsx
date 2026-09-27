@@ -83,7 +83,15 @@ export const SpreadCover: React.FC<SpreadCoverProps> = ({
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-50 border border-rose-200 shadow-sm text-xs font-bold text-rose-700">
+          <div
+            onClick={() =>
+              onOpenEdit('Editar Nombre del Destinatario', data.recipientName, 'text', (val) =>
+                onUpdateData({ recipientName: val })
+              )
+            }
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-50 border border-rose-200 shadow-sm text-xs font-bold text-rose-700 cursor-pointer hover:bg-rose-100 transition"
+            title="Clic para editar nombre del destinatario"
+          >
             <Heart className="w-3.5 h-3.5 fill-rose-500" />
             <span>Para Mi Osito {data.recipientName}</span>
           </div>
@@ -138,16 +146,32 @@ export const SpreadCover: React.FC<SpreadCoverProps> = ({
                 Abrir Carta Completa & Editar
               </button>
 
-              <span className="font-hand text-lg text-rose-800 font-bold">
+              <span
+                onClick={() =>
+                  onOpenEdit('Editar Nombre del Remitente', data.senderName, 'text', (val) =>
+                    onUpdateData({ senderName: val })
+                  )
+                }
+                className="font-hand text-lg text-rose-800 font-bold cursor-pointer hover:underline"
+                title="Clic para editar tu nombre"
+              >
                 Con amor, {data.senderName}
               </span>
             </div>
           </div>
 
           {/* Golden quote sticker */}
-          <div className="bg-amber-100/90 p-4 rounded-xl border border-amber-300 shadow-sm text-center">
+          <div
+            onClick={() =>
+              onOpenEdit('Editar Frase Dorada', data.coverQuote || 'Cada latido de mi corazón lleva tu nombre grabado con ternura.', 'textarea', (val) =>
+                onUpdateData({ coverQuote: val })
+              )
+            }
+            className="bg-amber-100/90 p-4 rounded-xl border border-amber-300 shadow-sm text-center cursor-pointer hover:bg-amber-200/90 transition"
+            title="Clic para editar esta frase de amor"
+          >
             <p className="font-fancy text-base text-amber-950 italic">
-              "Cada latido de mi corazón lleva tu nombre grabado con ternura."
+              "{data.coverQuote || 'Cada latido de mi corazón lleva tu nombre grabado con ternura.'}"
             </p>
           </div>
         </div>

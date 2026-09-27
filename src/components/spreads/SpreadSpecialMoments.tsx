@@ -32,11 +32,27 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
 
         <div className="space-y-4 my-auto">
           <div className="bg-white p-3.5 rounded-2xl shadow-md border border-slate-200">
-            <h3 className="font-fancy text-2xl font-bold text-rose-950 mb-2">
-              El Día en que Todo Cambió
+            <h3
+              onClick={() =>
+                onOpenEdit('Editar Título de Historia', data.storyTitle || 'El Día en que Todo Cambió', 'text', (val) =>
+                  onUpdateData({ storyTitle: val })
+                )
+              }
+              className="font-fancy text-2xl font-bold text-rose-950 mb-2 cursor-pointer hover:text-rose-700 transition"
+              title="Clic para editar título"
+            >
+              {data.storyTitle || 'El Día en que Todo Cambió'}
             </h3>
-            <p className="font-hand text-lg text-slate-800 leading-relaxed">
-              Desde aquella primera conversación hasta convertirnos en inseparables, cada segundo a tu lado me demostró que el amor de verdad existe, es dulce y reconfortante como un abrazo tuyo.
+            <p
+              onClick={() =>
+                onOpenEdit('Editar Relato de Amor', data.storyBody || 'Desde aquella primera conversación hasta convertirnos en inseparables...', 'textarea', (val) =>
+                  onUpdateData({ storyBody: val })
+                )
+              }
+              className="font-hand text-lg text-slate-800 leading-relaxed cursor-pointer hover:bg-rose-50/50 p-1 rounded transition"
+              title="Clic para editar relato"
+            >
+              {data.storyBody || 'Desde aquella primera conversación hasta convertirnos en inseparables, cada segundo a tu lado me demostró que el amor de verdad existe, es dulce y reconfortante como un abrazo tuyo.'}
             </p>
           </div>
 
@@ -61,8 +77,32 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
               </button>
             </div>
             <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-              <span className="font-hand text-base">{data.specialMoments[0]?.title || 'El inicio de nuestra magia'}</span>
-              <span className="text-[10px] text-slate-500 font-mono">{data.specialMoments[0]?.date || 'Día Inolvidable'}</span>
+              <span
+                onClick={() =>
+                  onOpenEdit('Editar Título del Momento', data.specialMoments[0]?.title || 'El inicio de nuestra magia', 'text', (newT) => {
+                    const updated = [...data.specialMoments];
+                    updated[0] = { ...updated[0], title: newT };
+                    onUpdateData({ specialMoments: updated });
+                  })
+                }
+                className="font-hand text-base cursor-pointer hover:underline"
+                title="Clic para editar título"
+              >
+                {data.specialMoments[0]?.title || 'El inicio de nuestra magia'}
+              </span>
+              <span
+                onClick={() =>
+                  onOpenEdit('Editar Fecha / Texto', data.specialMoments[0]?.date || 'Día Inolvidable', 'text', (newD) => {
+                    const updated = [...data.specialMoments];
+                    updated[0] = { ...updated[0], date: newD };
+                    onUpdateData({ specialMoments: updated });
+                  })
+                }
+                className="text-[10px] text-slate-500 font-mono cursor-pointer hover:text-sky-700"
+                title="Clic para editar fecha"
+              >
+                {data.specialMoments[0]?.date || 'Día Inolvidable'}
+              </span>
             </div>
           </div>
         </div>
@@ -108,14 +148,46 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
               </button>
             </div>
             <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-              <span className="font-hand text-base">{data.specialMoments[1]?.title || 'Tardes de risas infinitas'}</span>
-              <span className="text-[10px] text-slate-500 font-mono">{data.specialMoments[1]?.date || 'Siempre Juntos'}</span>
+              <span
+                onClick={() =>
+                  onOpenEdit('Editar Título del Momento', data.specialMoments[1]?.title || 'Tardes de risas infinitas', 'text', (newT) => {
+                    const updated = [...data.specialMoments];
+                    updated[1] = { ...updated[1], title: newT };
+                    onUpdateData({ specialMoments: updated });
+                  })
+                }
+                className="font-hand text-base cursor-pointer hover:underline"
+                title="Clic para editar título"
+              >
+                {data.specialMoments[1]?.title || 'Tardes de risas infinitas'}
+              </span>
+              <span
+                onClick={() =>
+                  onOpenEdit('Editar Fecha / Texto', data.specialMoments[1]?.date || 'Siempre Juntos', 'text', (newD) => {
+                    const updated = [...data.specialMoments];
+                    updated[1] = { ...updated[1], date: newD };
+                    onUpdateData({ specialMoments: updated });
+                  })
+                }
+                className="text-[10px] text-slate-500 font-mono cursor-pointer hover:text-rose-700"
+                title="Clic para editar fecha"
+              >
+                {data.specialMoments[1]?.date || 'Siempre Juntos'}
+              </span>
             </div>
           </div>
 
-          <div className="bg-rose-50 p-4 rounded-xl border border-rose-200 text-center">
+          <div
+            onClick={() =>
+              onOpenEdit('Editar Frase Romántica', data.storyQuote || 'No importa qué estemos haciendo, si es contigo se convierte en mi momento favorito del día.', 'textarea', (val) =>
+                onUpdateData({ storyQuote: val })
+              )
+            }
+            className="bg-rose-50 p-4 rounded-xl border border-rose-200 text-center cursor-pointer hover:bg-rose-100 transition"
+            title="Clic para editar esta frase de amor"
+          >
             <p className="font-fancy text-lg text-rose-950 italic">
-              "No importa qué estemos haciendo, si es contigo se convierte en mi momento favorito del día."
+              "{data.storyQuote || 'No importa qué estemos haciendo, si es contigo se convierte en mi momento favorito del día.'}"
             </p>
           </div>
         </div>

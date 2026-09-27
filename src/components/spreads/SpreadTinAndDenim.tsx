@@ -47,8 +47,16 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
             </div>
           </div>
 
-          <p className="font-hand text-lg text-slate-800 font-bold mb-3 italic">
-            "Guardando cada instante contigo..."
+          <p
+            onClick={() =>
+              onOpenEdit('Editar Frase de la Cajita', data.tinSubquote || 'Guardando cada instante contigo...', 'text', (val) =>
+                onUpdateData({ tinSubquote: val })
+              )
+            }
+            className="font-hand text-lg text-slate-800 font-bold mb-3 italic cursor-pointer hover:bg-slate-100/60 p-1 rounded transition"
+            title="Clic para editar esta frase"
+          >
+            "{data.tinSubquote || 'Guardando cada instante contigo...'}"
           </p>
 
           {/* Inner Tin Tray (Blue Gingham Fabric Liner) */}
@@ -126,10 +134,11 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
                   </span>
                   <button
                     onClick={() => {
-                      const newWish = prompt('Escribe un nuevo deseo juntos:');
-                      if (newWish) {
-                        onUpdateData({ tinWishList: [...data.tinWishList, newWish] });
-                      }
+                      onOpenEdit('Nuevo Deseo Juntos', 'Escribe aquí un deseo...', 'text', (newWish) => {
+                        if (newWish) {
+                          onUpdateData({ tinWishList: [...data.tinWishList, newWish] });
+                        }
+                      });
                     }}
                     className="text-[10px] font-bold text-sky-700 hover:text-sky-900 flex items-center gap-0.5"
                   >

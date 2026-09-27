@@ -1,10 +1,13 @@
-import { SongItem } from '../types';
+import { SongItem, CustomPage, GameConfig } from '../types';
 
 export interface ScrapbookStore {
   // Common details
   recipientName: string;
   senderName: string;
   totalPageCount: number;
+  adminPassword?: string;
+  customPages?: Record<number, CustomPage>;
+  gamesConfig?: GameConfig[];
 
   // Page 9-10: Social Feed
   igPhoto: string;
@@ -65,7 +68,22 @@ export interface ScrapbookStore {
   secretLetter: string;
   coverTitle: string;
   coverSubtitle: string;
+  coverQuote: string;
   specialMoments: { title: string; date: string; photo: string }[];
+  storyTitle: string;
+  storyBody: string;
+  storyQuote: string;
+
+  // Extra quotes and texts
+  tinSubquote: string;
+  achievementsSubtitle: string;
+  cassetteDedication: string;
+  cassetteQuote: string;
+  mosaicTitle: string;
+  mosaicBody: string;
+  mosaicPhotos: string[];
+  gamesList: Array<{ title: string; desc: string }>;
+
   songs?: SongItem[];
 }
 
@@ -157,18 +175,49 @@ export const defaultScrapbookData: ScrapbookStore = {
   secretLetter: 'Si me pidieran elegir entre el mundo entero y pasar 5 minutos más contigo, elegiría tus abrazos sin dudarlo. Gracias por cada risa, cada partida jugando juntos, por cada empanada que compartimos y por ser mi refugio favorito. Este libro de 500 páginas apenas alcanza para guardar una pequeña fracción de todo lo que te amo, muak muak muak!',
   coverTitle: 'Nuestro Scrapbook de Amor Eterno',
   coverSubtitle: 'Dedicado para el osito más hermoso del universo',
+  coverQuote: 'Cada latido de mi corazón lleva tu nombre grabado con ternura.',
   specialMoments: [
     { title: 'El inicio de nuestra magia', date: 'Día Inolvidable', photo: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop' },
     { title: 'Tardes de risas infinitas', date: 'Siempre Juntos', photo: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&auto=format&fit=crop' },
   ],
+  storyTitle: 'El Día en que Todo Cambió',
+  storyBody: 'Desde aquella primera conversación hasta convertirnos en inseparables, cada segundo a tu lado me demostró que el amor de verdad existe, es dulce y reconfortante como un abrazo tuyo.',
+  storyQuote: 'No importa qué estemos haciendo, si es contigo se convierte en mi momento favorito del día.',
+
+  tinSubquote: 'Guardando cada instante contigo...',
+  achievementsSubtitle: 'Mi razón de orgullo — Cada meta que cumples alegra mi vida entera.',
+  cassetteDedication: 'Canciones para bailar lento contigo ♡',
+  cassetteQuote: 'No hay melodía más bonita que escuchar tu risa cuando te cuento tonterías.',
+  mosaicTitle: 'Para Siempre Marcelololelo',
+  mosaicBody: 'No existen suficientes palabras ni páginas en todo el universo para describir lo inmensamente feliz que me haces cada día. Prometo quererte, cuidarte y prepararte empanadas siempre.',
+  mosaicPhotos: [
+    'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=300&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=300&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=300&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=300&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=300&auto=format&fit=crop',
+  ],
+  gamesList: [
+    { title: 'Minecraft', desc: 'Nuestra casita de madera y granja de flores 🏡' },
+    { title: 'It Takes Two', desc: 'Superando cada nivel en equipo perfecto 🧩' },
+    { title: 'Roblox / Party', desc: 'Risas sin parar cuando perdemos juntos 🎮' },
+  ],
+  gamesConfig: [
+    { id: 'g1', title: 'Minecraft', desc: 'Nuestra casita de madera y granja de flores 🏡', icon: 'Gamepad2', url: 'https://classic.minecraft.net/', pageNumber: 6, active: true },
+    { id: 'g2', title: 'Juego de Memoria Romántica', desc: 'Encuentra las parejas de nuestras fotos y recuerdos', icon: 'Heart', url: '#juego-memoria', pageNumber: 6, active: true },
+    { id: 'g3', title: 'It Takes Two / Party', desc: 'Superando cada nivel en equipo perfecto 🧩', icon: 'Sparkles', url: '', pageNumber: 6, active: true },
+  ],
+  customPages: {},
+  adminPassword: 'amor',
   songs: [
     {
-      id: 'synth-1',
-      title: 'Melodía Romántica en Piano',
-      artist: 'Nuestra Historia de Amor',
-      type: 'synth',
-      url: 'synth',
-      duration: 'Ambiental',
+      id: 'song-1790279498897',
+      title: 'Melting',
+      artist: 'Sonríeme siempre, osito bonito',
+      type: 'youtube',
+      url: 'https://www.youtube.com/watch?v=xIsCh-BA8Ew&list=RDxIsCh-BA8Ew&start_radio=1',
+      duration: 'En línea',
     },
     {
       id: 'yt-1',
@@ -179,12 +228,20 @@ export const defaultScrapbookData: ScrapbookStore = {
       duration: '4:23',
     },
     {
-      id: 'spot-1',
+      id: 'yt-2',
       title: "Can't Help Falling in Love",
       artist: 'Elvis Presley',
-      type: 'spotify',
-      url: 'https://open.spotify.com/track/44AyOl4qVkzS48vBsbNXaC',
+      type: 'youtube',
+      url: 'https://www.youtube.com/watch?v=vGJTaP6anOU',
       duration: '3:00',
+    },
+    {
+      id: 'synth-1',
+      title: 'Melodía Romántica en Piano',
+      artist: 'Nuestra Historia de Amor',
+      type: 'synth',
+      url: 'synth',
+      duration: 'Ambiental',
     },
   ],
 };

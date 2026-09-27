@@ -29,19 +29,20 @@ export const SpreadThingsWeLove: React.FC<SpreadThingsWeLoveProps> = ({
           </div>
           <button
             onClick={() => {
-              const newTitle = prompt('¿Qué otra cosa te encanta de ambos?');
-              if (newTitle) {
-                onUpdateData({
-                  thingsWeLovePhotos: [
-                    ...data.thingsWeLovePhotos,
-                    {
-                      id: 'twl-' + Date.now(),
-                      title: newTitle,
-                      url: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop',
-                    },
-                  ],
-                });
-              }
+              onOpenEdit('¿Qué otra cosa te encanta de ambos?', 'Nueva razón para amarte...', 'text', (newTitle) => {
+                if (newTitle) {
+                  onUpdateData({
+                    thingsWeLovePhotos: [
+                      ...data.thingsWeLovePhotos,
+                      {
+                        id: 'twl-' + Date.now(),
+                        title: newTitle,
+                        url: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop',
+                      },
+                    ],
+                  });
+                }
+              });
             }}
             className="crystal-btn text-[11px] font-bold text-sky-950 px-3 py-1 rounded-lg flex items-center gap-1"
           >
@@ -90,14 +91,13 @@ export const SpreadThingsWeLove: React.FC<SpreadThingsWeLoveProps> = ({
               </div>
 
               <div
-                onClick={() => {
-                  const newT = prompt('Editar título:', item.title);
-                  if (newT) {
+                onClick={() =>
+                  onOpenEdit('Editar Título', item.title, 'text', (newT) => {
                     const updated = [...data.thingsWeLovePhotos];
                     updated[idx].title = newT;
                     onUpdateData({ thingsWeLovePhotos: updated });
-                  }
-                }}
+                  })
+                }
                 className="text-center font-hand text-base font-bold text-slate-900 cursor-pointer hover:text-sky-600 truncate"
               >
                 {item.title}

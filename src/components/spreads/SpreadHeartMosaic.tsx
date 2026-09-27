@@ -6,14 +6,16 @@ interface SpreadHeartMosaicProps {
   data: ScrapbookStore;
   onOpenEdit: (title: string, value: string, type: 'image' | 'text' | 'textarea', onSave: (val: string) => void) => void;
   onTriggerRain: () => void;
+  onUpdateData: (partial: Partial<ScrapbookStore>) => void;
 }
 
 export const SpreadHeartMosaic: React.FC<SpreadHeartMosaicProps> = ({
   data,
   onOpenEdit,
   onTriggerRain,
+  onUpdateData,
 }) => {
-  const mosaicPhotos = [
+  const mosaicPhotos = (data.mosaicPhotos && data.mosaicPhotos.length === 6) ? data.mosaicPhotos : [
     'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=300&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=300&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=300&auto=format&fit=crop',
@@ -41,10 +43,22 @@ export const SpreadHeartMosaic: React.FC<SpreadHeartMosaicProps> = ({
           {mosaicPhotos.map((src, i) => (
             <div
               key={i}
-              className="aspect-square bg-slate-100 rounded-xl overflow-hidden shadow-md border-2 border-white hover:scale-105 transition cursor-pointer"
-              onClick={onTriggerRain}
+              className="aspect-square bg-slate-100 rounded-xl overflow-hidden shadow-md border-2 border-white hover:scale-105 transition relative group"
             >
               <img src={src} alt={`Mosaic ${i}`} className="w-full h-full object-cover" />
+              <button
+                onClick={() =>
+                  onOpenEdit(`Cambiar Foto de Mosaico #${i + 1}`, src, 'image', (val) => {
+                    const updated = [...mosaicPhotos];
+                    updated[i] = val;
+                    onUpdateData({ mosaicPhotos: updated });
+                  })
+                }
+                className="absolute inset-0 bg-sky-950/70 text-white text-[10px] font-bold flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition"
+              >
+                <Camera className="w-4 h-4 mb-0.5" />
+                <span>Cambiar</span>
+              </button>
             </div>
           ))}
         </div>
@@ -70,18 +84,34 @@ export const SpreadHeartMosaic: React.FC<SpreadHeartMosaicProps> = ({
 
         <div className="my-auto space-y-4">
           <div className="bg-[#fffcf7] p-6 rounded-2xl shadow-lg border-2 border-rose-200">
-            <h3 className="font-fancy text-3xl font-bold text-rose-950 mb-3 text-center">
-              Para Siempre Marcelololelo
+            <h3
+              onClick={() =>
+                onOpenEdit('Editar Título de Promesa', data.mosaicTitle || `Para Siempre ${data.recipientName}`, 'text', (val) =>
+                  onUpdateData({ mosaicTitle: val })
+                )
+              }
+              className="font-fancy text-3xl font-bold text-rose-950 mb-3 text-center cursor-pointer hover:text-rose-700 transition"
+              title="Clic para editar título"
+            >
+              {data.mosaicTitle || `Para Siempre ${data.recipientName}`}
             </h3>
-            <p className="font-hand text-xl text-slate-800 leading-relaxed text-center">
-              "No existen suficientes palabras ni páginas en todo el universo para describir lo inmensamente feliz que me haces cada día. Prometo quererte, cuidarte y prepararte empanadas siempre."
+            <p
+              onClick={() =>
+                onOpenEdit('Editar Mensaje de Amor', data.mosaicBody || 'No existen suficientes palabras ni páginas...', 'textarea', (val) =>
+                  onUpdateData({ mosaicBody: val })
+                )
+              }
+              className="font-hand text-xl text-slate-800 leading-relaxed text-center cursor-pointer hover:bg-rose-50/60 p-2 rounded transition"
+              title="Clic para editar mensaje"
+            >
+              "{data.mosaicBody || 'No existen suficientes palabras ni páginas en todo el universo para describir lo inmensamente feliz que me haces cada día. Prometo quererte, cuidarte y prepararte empanadas siempre.'}"
             </p>
           </div>
 
           <div className="flex justify-center">
             <button
               onClick={onTriggerRain}
-              className="crystal-btn px-6 py-2.5 text-xs font-bold text-sky-950 rounded-full flex items-center gap-2"
+              className="crystal-btn px-6 py-2.5 text-xs font-bold text-sky-950 rounded-full flex items-center gap-2 shadow hover:scale-105 active:scale-95 transition"
             >
               <Sparkles className="w-4 h-4 text-amber-500" />
               Presionar para Sorpresa

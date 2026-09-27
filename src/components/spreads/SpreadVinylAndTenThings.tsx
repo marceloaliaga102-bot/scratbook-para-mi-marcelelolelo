@@ -105,8 +105,16 @@ export const SpreadVinylAndTenThings: React.FC<SpreadVinylAndTenThingsProps> = (
                 <div className="w-5 h-5 rounded-full bg-slate-900 border-2 border-slate-500 flex items-center justify-center text-[8px] font-mono">
                   A
                 </div>
-                <span className="font-hand text-base text-amber-200 font-semibold">
-                  Canciones para bailar lento contigo ♡
+                <span
+                  onClick={() =>
+                    onOpenEdit('Editar Dedicatoria de Cassette', data.cassetteDedication || 'Canciones para bailar lento contigo ♡', 'text', (val) =>
+                      onUpdateData({ cassetteDedication: val })
+                    )
+                  }
+                  className="font-hand text-base text-amber-200 font-semibold cursor-pointer hover:underline"
+                  title="Clic para editar dedicatoria"
+                >
+                  {data.cassetteDedication || 'Canciones para bailar lento contigo ♡'}
                 </span>
               </div>
               <Heart className="w-4 h-4 fill-rose-500 text-rose-500 animate-pulse" />
@@ -116,14 +124,33 @@ export const SpreadVinylAndTenThings: React.FC<SpreadVinylAndTenThingsProps> = (
           {/* Photobooth trio memories */}
           <div className="bg-amber-50/80 p-3 rounded-xl border border-amber-200 flex items-center justify-around text-xs font-hand text-amber-950 font-bold">
             {data.photoboothItems.map((item, i) => (
-              <span key={i} className="hover:text-rose-600 cursor-pointer">
+              <span
+                key={i}
+                onClick={() =>
+                  onOpenEdit('Editar Recuerdo', item, 'text', (newIt) => {
+                    const updated = [...data.photoboothItems];
+                    updated[i] = newIt;
+                    onUpdateData({ photoboothItems: updated });
+                  })
+                }
+                className="hover:text-rose-600 cursor-pointer hover:underline"
+                title="Clic para editar"
+              >
                 {item}
               </span>
             ))}
           </div>
 
-          <p className="font-fancy text-base text-sky-950 text-center italic">
-            "No hay melodía más bonita que escuchar tu risa cuando te cuento tonterías."
+          <p
+            onClick={() =>
+              onOpenEdit('Editar Frase de Música', data.cassetteQuote || 'No hay melodía más bonita que escuchar tu risa cuando te cuento tonterías.', 'textarea', (val) =>
+                onUpdateData({ cassetteQuote: val })
+              )
+            }
+            className="font-fancy text-base text-sky-950 text-center italic cursor-pointer hover:bg-sky-100/60 p-1.5 rounded transition"
+            title="Clic para editar esta frase"
+          >
+            "{data.cassetteQuote || 'No hay melodía más bonita que escuchar tu risa cuando te cuento tonterías.'}"
           </p>
         </div>
 
@@ -161,14 +188,13 @@ export const SpreadVinylAndTenThings: React.FC<SpreadVinylAndTenThingsProps> = (
             {data.tenThingsList.map((item, idx) => (
               <li
                 key={idx}
-                onClick={() => {
-                  const newText = prompt(`Editar razón #${idx + 1}:`, item);
-                  if (newText) {
+                onClick={() =>
+                  onOpenEdit(`Editar Razón #${idx + 1}`, item, 'text', (newText) => {
                     const updated = [...data.tenThingsList];
                     updated[idx] = newText;
                     onUpdateData({ tenThingsList: updated });
-                  }
-                }}
+                  })
+                }
                 className="cursor-pointer hover:bg-amber-100/60 p-1 rounded transition flex items-start gap-1.5 group"
                 title="Clic para editar esta razón"
               >

@@ -1,0 +1,29 @@
+{
+  "coverTitle": "Nuestro Scrapbook",
+  "songs": [
+    {
+      "id": "song-1790279498897",
+      "title": "Melting",
+      "artist": "Sonríeme siempre, osito bonito",
+      "type": "youtube",
+      "url": "https://www.youtube.com/watch?v=xIsCh-BA8Ew&list=RDxIsCh-BA8Ew&start_radio=1",
+      "duration": "En línea"
+    },
+    {
+      "id": "yt-1",
+      "title": "Ed Sheeran - Perfect",
+      "artist": "Ed Sheeran",
+      "type": "youtube",
+      "url": "https://www.youtube.com/watch?v=2Vv-BfVoq4g",
+      "duration": "4:23"
+    },
+    {
+      "id": "yt-2",
+      "title": "Can't Help Falling in Love",
+      "artist": "Elvis Presley",
+      "type": "youtube",
+      "url": "https://www.youtube.com/watch?v=vGJTaP6anOU",
+      "duration": "3:00"
+    }
+  ]
+}

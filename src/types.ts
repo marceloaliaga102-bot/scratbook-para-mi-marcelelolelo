@@ -1,3 +1,40 @@
+export interface PageElement {
+  id: string;
+  type: 'text' | 'image' | 'sticker' | 'polaroid' | 'quote' | 'frame';
+  x: number; // percentage 0-100
+  y: number; // percentage 0-100
+  width?: number; // percentage or px
+  height?: number;
+  rotation?: number; // degrees
+  content: string; // text body or image URL
+  title?: string;
+  caption?: string;
+  color?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  zIndex?: number;
+}
+
+export interface CustomPage {
+  pageNumber: number;
+  title?: string;
+  subtitle?: string;
+  background?: string; // color or CSS class or gradient
+  template?: 'blank' | 'polaroid_duo' | 'letter' | 'mosaic' | 'scrapbook_classic' | 'quote_banner';
+  elements: PageElement[];
+  note?: string;
+}
+
+export interface GameConfig {
+  id: string;
+  title: string;
+  desc: string;
+  icon?: string;
+  url?: string;
+  pageNumber?: number;
+  active: boolean;
+}
+
 export interface BookPage {
   id: string;
   pageNumber: number;
