@@ -21,17 +21,48 @@ const app = express();
 const PORT = 3000;
 const DATA_FILE = path.join(__dirname, 'cloud_book_data.json');
 const AUDIO_UPLOAD_DIR = path.join(__dirname, 'public', 'uploads', 'audio');
+const IMAGE_UPLOAD_DIR = path.join(__dirname, 'public', 'uploads', 'images');
 
 if (!fs.existsSync(AUDIO_UPLOAD_DIR)) {
   fs.mkdirSync(AUDIO_UPLOAD_DIR, { recursive: true });
+}
+if (!fs.existsSync(IMAGE_UPLOAD_DIR)) {
+  fs.mkdirSync(IMAGE_UPLOAD_DIR, { recursive: true });
 }
 
 // Allow large payloads for media uploads (photos, videos, audio up to 50MB)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve uploaded audio files directly
+// Serve uploaded audio and image files directly
 app.use('/uploads/audio', express.static(AUDIO_UPLOAD_DIR));
+app.use('/uploads/images', express.static(IMAGE_UPLOAD_DIR));
+
+// Endpoint to upload and persist images directly to disk
+app.post('/api/upload-image', (req, res) => {
+  try {
+    const { image, name } = req.body || {};
+    if (!image) return res.status(400).json({ error: 'No image provided' });
+
+    // If it's a data URL, decode base64 and save as file
+    const matches = image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+      const mime = matches[1];
+      const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+      const cleanName = (name || 'photo').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
+      const fileName = `${cleanName}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+      const filePath = path.join(IMAGE_UPLOAD_DIR, fileName);
+      const buffer = Buffer.from(matches[2], 'base64');
+      fs.writeFileSync(filePath, buffer);
+      return res.json({ success: true, url: `/uploads/images/${fileName}` });
+    }
+    // If it's already a URL, return it
+    return res.json({ success: true, url: image });
+  } catch (err: any) {
+    console.error('Error saving image upload:', err);
+    return res.status(500).json({ error: 'Failed to save image' });
+  }
+});
 
 // Download complete project archive for GitHub / Vercel
 app.get('/nuestro-scrapbook.zip', (req, res) => {
@@ -56,17 +87,24 @@ app.get('/api/book-data', async (req, res) => {
     const book = await getScrapbook('main_book');
     if (book) {
       const dbPagesData: any = book.pages || {};
+      const allCustomPages = {
+        ...(dbPagesData.customPages || {}),
+        ...(fileData.customPages || {}),
+      };
+
       return res.json({
         ...fileData,
-        title: fileData.title || book.title,
-        subtitle: fileData.subtitle || book.subtitle || '',
+        ...book,
+        ...dbPagesData,
+        customPages: allCustomPages,
+        title: fileData.coverTitle || fileData.title || book.title || 'Nuestro Scrapbook',
+        subtitle: fileData.coverSubtitle || fileData.subtitle || book.subtitle || '',
         recipientName: fileData.recipientName || book.recipientName || '',
         senderName: fileData.senderName || book.senderName || '',
         specialDate: fileData.specialDate || book.specialDate || '',
         theme: fileData.theme || book.theme || {},
         pages: fileData.pages || (Array.isArray(book.pages) ? book.pages : dbPagesData.list || []),
-        songs: Array.isArray(fileData.songs) ? fileData.songs : (Array.isArray(book.songs) ? book.songs : []),
-        customPages: fileData.customPages || dbPagesData.customPages || {},
+        songs: Array.isArray(fileData.songs) && fileData.songs.length > 0 ? fileData.songs : (Array.isArray(book.songs) ? book.songs : []),
         surpriseQuotes: fileData.surpriseQuotes || book.surpriseQuotes || [],
         updatedAt: book.updatedAt,
       });
@@ -107,10 +145,21 @@ app.post('/api/book-data', optionalAuth, async (req: AuthRequest, res) => {
       existingSql = (await getScrapbook('main_book')) || {};
     } catch {}
 
+    const existingCustomPages = {
+      ...(currentBackup.customPages || {}),
+      ...((existingSql.pages && typeof existingSql.pages === 'object' && !Array.isArray(existingSql.pages)) ? existingSql.pages.customPages : {}),
+      ...(existingSql.customPages || {}),
+    };
+
+    const mergedCustomPages = payload.customPages
+      ? { ...existingCustomPages, ...payload.customPages }
+      : existingCustomPages;
+
     const merged = {
       ...currentBackup,
       ...existingSql,
       ...payload,
+      customPages: mergedCustomPages,
     };
     
     // Save merged to PostgreSQL via Drizzle
@@ -124,20 +173,20 @@ app.post('/api/book-data', optionalAuth, async (req: AuthRequest, res) => {
       theme: merged.theme ?? {},
       pages: {
         list: Array.isArray(merged.pages) ? merged.pages : [],
-        customPages: merged.customPages || {},
+        customPages: mergedCustomPages,
       },
       songs: merged.songs ?? [],
       surpriseQuotes: merged.surpriseQuotes ?? [],
     });
 
-    // Also write merged backup file
+    // Also write merged backup file with full store data
     try {
       fs.writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2), 'utf-8');
     } catch (e) {
       console.warn('Backup file write failed:', e);
     }
 
-    return res.json({ success: true, timestamp: Date.now(), id: saved?.id });
+    return res.json({ success: true, timestamp: Date.now(), id: saved?.id, customPagesCount: Object.keys(mergedCustomPages).length });
   } catch (error: any) {
     console.error('Error saving book data to Cloud SQL:', error);
     return res.status(500).json({ error: 'Failed to save book data' });

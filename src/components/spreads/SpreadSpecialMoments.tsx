@@ -6,7 +6,7 @@ interface SpreadSpecialMomentsProps {
   data: ScrapbookStore;
   onOpenEdit: (title: string, value: string, type: 'image' | 'text' | 'textarea', onSave: (val: string) => void) => void;
   onTriggerRain: () => void;
-  onUpdateData: (partial: Partial<ScrapbookStore>) => void;
+  onUpdateData: (partialOrUpdater: Partial<ScrapbookStore> | ((prev: ScrapbookStore) => Partial<ScrapbookStore>)) => void;
 }
 
 export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
@@ -66,9 +66,12 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
               <button
                 onClick={() =>
                   onOpenEdit('Cambiar Foto de Momento', data.specialMoments[0]?.photo || '', 'image', (val) => {
-                    const updated = [...data.specialMoments];
-                    updated[0] = { ...updated[0], photo: val };
-                    onUpdateData({ specialMoments: updated });
+                    onUpdateData((prevStore) => {
+                      const current = prevStore.specialMoments || [];
+                      const updated = [...current];
+                      updated[0] = { ...updated[0], photo: val };
+                      return { specialMoments: updated };
+                    });
                   })
                 }
                 className="absolute inset-0 bg-sky-950/70 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
@@ -80,9 +83,12 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
               <span
                 onClick={() =>
                   onOpenEdit('Editar Título del Momento', data.specialMoments[0]?.title || 'El inicio de nuestra magia', 'text', (newT) => {
-                    const updated = [...data.specialMoments];
-                    updated[0] = { ...updated[0], title: newT };
-                    onUpdateData({ specialMoments: updated });
+                    onUpdateData((prevStore) => {
+                      const current = prevStore.specialMoments || [];
+                      const updated = [...current];
+                      updated[0] = { ...updated[0], title: newT };
+                      return { specialMoments: updated };
+                    });
                   })
                 }
                 className="font-hand text-base cursor-pointer hover:underline"
@@ -93,9 +99,12 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
               <span
                 onClick={() =>
                   onOpenEdit('Editar Fecha / Texto', data.specialMoments[0]?.date || 'Día Inolvidable', 'text', (newD) => {
-                    const updated = [...data.specialMoments];
-                    updated[0] = { ...updated[0], date: newD };
-                    onUpdateData({ specialMoments: updated });
+                    onUpdateData((prevStore) => {
+                      const current = prevStore.specialMoments || [];
+                      const updated = [...current];
+                      updated[0] = { ...updated[0], date: newD };
+                      return { specialMoments: updated };
+                    });
                   })
                 }
                 className="text-[10px] text-slate-500 font-mono cursor-pointer hover:text-sky-700"
@@ -137,9 +146,12 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
               <button
                 onClick={() =>
                   onOpenEdit('Cambiar Foto de Momento', data.specialMoments[1]?.photo || '', 'image', (val) => {
-                    const updated = [...data.specialMoments];
-                    updated[1] = { ...updated[1], photo: val };
-                    onUpdateData({ specialMoments: updated });
+                    onUpdateData((prevStore) => {
+                      const current = prevStore.specialMoments || [];
+                      const updated = [...current];
+                      updated[1] = { ...updated[1], photo: val };
+                      return { specialMoments: updated };
+                    });
                   })
                 }
                 className="absolute inset-0 bg-sky-950/70 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
@@ -151,9 +163,12 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
               <span
                 onClick={() =>
                   onOpenEdit('Editar Título del Momento', data.specialMoments[1]?.title || 'Tardes de risas infinitas', 'text', (newT) => {
-                    const updated = [...data.specialMoments];
-                    updated[1] = { ...updated[1], title: newT };
-                    onUpdateData({ specialMoments: updated });
+                    onUpdateData((prevStore) => {
+                      const current = prevStore.specialMoments || [];
+                      const updated = [...current];
+                      updated[1] = { ...updated[1], title: newT };
+                      return { specialMoments: updated };
+                    });
                   })
                 }
                 className="font-hand text-base cursor-pointer hover:underline"
@@ -164,9 +179,12 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
               <span
                 onClick={() =>
                   onOpenEdit('Editar Fecha / Texto', data.specialMoments[1]?.date || 'Siempre Juntos', 'text', (newD) => {
-                    const updated = [...data.specialMoments];
-                    updated[1] = { ...updated[1], date: newD };
-                    onUpdateData({ specialMoments: updated });
+                    onUpdateData((prevStore) => {
+                      const current = prevStore.specialMoments || [];
+                      const updated = [...current];
+                      updated[1] = { ...updated[1], date: newD };
+                      return { specialMoments: updated };
+                    });
                   })
                 }
                 className="text-[10px] text-slate-500 font-mono cursor-pointer hover:text-rose-700"

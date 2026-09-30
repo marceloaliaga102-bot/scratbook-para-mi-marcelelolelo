@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Link, Check, Film, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Link, Check, Film, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { compressImage } from '../utils/imageCompressor';
 
 interface EditItemModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 }) => {
   const [value, setValue] = useState(currentValue);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     setValue(currentValue);
@@ -39,40 +41,67 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    setIsProcessing(true);
+
+    try {
       if (file.type.startsWith('video/')) {
         setMediaType('video');
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            setValue(reader.result);
+            setIsProcessing(false);
+          }
+        };
+        reader.readAsDataURL(file);
       } else {
         setMediaType('image');
-      }
-
-      // Check file size (limit dataURLs to reasonable size < 8MB for smooth Firebase sync)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('Para videos o fotos muy pesadas (+10MB), te recomendamos usar un enlace directo o comprimir el archivo.');
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          const dataUrl = reader.result;
-          setValue(dataUrl);
-          // Persist media to Cloud SQL PostgreSQL database
-          fetch('/api/media', {
+        // 1. Comprimir imagen en el cliente para que pese ~40KB en vez de 10MB
+        const compressedDataUrl = await compressImage(file, 1200, 1200, 0.78);
+        
+        // 2. Intentar subir al servidor para obtener una URL estática ligera (/uploads/images/...)
+        try {
+          const uploadRes = await fetch('/api/upload-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              image: compressedDataUrl,
               name: file.name,
-              type: file.type.startsWith('video/') ? 'video' : 'image',
-              url: dataUrl,
-              caption: title,
-              size: file.size,
             }),
-          }).catch((err) => console.warn('Cloud SQL media upload warning:', err));
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData?.url) {
+            setValue(uploadData.url);
+          } else {
+            setValue(compressedDataUrl);
+          }
+        } catch {
+          // Si el servidor local no está disponible (ej. despliegue estático), usar dataUrl optimizada
+          setValue(compressedDataUrl);
         }
-      };
-      reader.readAsDataURL(file);
+
+        // Registrar en biblioteca de medios de PostgreSQL
+        fetch('/api/media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: file.name,
+            type: 'image',
+            url: compressedDataUrl,
+            caption: title,
+            size: file.size,
+          }),
+        }).catch(() => {});
+
+        setIsProcessing(false);
+      }
+    } catch (err) {
+      console.error('Error procesando imagen:', err);
+      setIsProcessing(false);
     }
   };
 
@@ -175,16 +204,17 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                 </label>
                 <label className="flex flex-col items-center justify-center border-2 border-dashed border-sky-300 hover:border-sky-500 rounded-2xl p-4 cursor-pointer bg-sky-50/40 hover:bg-sky-50 transition group">
                   <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 mb-1.5 group-hover:scale-110 transition">
-                    <Upload className="w-5 h-5" />
+                    {isProcessing ? <Loader2 className="w-5 h-5 animate-spin text-sky-600" /> : <Upload className="w-5 h-5" />}
                   </div>
                   <span className="text-xs text-sky-800 font-bold">
-                    Subir {mediaType === 'video' ? 'video (.mp4, .mov, etc.)' : 'foto (.jpg, .png, etc.)'}
+                    {isProcessing ? 'Optimizando foto en alta calidad...' : `Subir ${mediaType === 'video' ? 'video (.mp4, .mov, etc.)' : 'foto (.jpg, .png, etc.)'}`}
                   </span>
                   <span className="text-[10px] text-slate-400 mt-0.5">
-                    Se guarda directamente en la nube
+                    {isProcessing ? 'Comprimiendo y guardando en la nube...' : 'Se guarda directamente en la nube'}
                   </span>
                   <input
                     type="file"
+                    disabled={isProcessing}
                     accept={mediaType === 'video' ? 'video/*' : 'image/*'}
                     onChange={handleFileUpload}
                     className="hidden"

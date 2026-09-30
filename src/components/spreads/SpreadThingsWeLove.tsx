@@ -7,7 +7,7 @@ interface SpreadThingsWeLoveProps {
   data: ScrapbookStore;
   onOpenEdit: (title: string, value: string, type: 'image' | 'text' | 'textarea', onSave: (val: string) => void) => void;
   onTriggerRain: () => void;
-  onUpdateData: (partial: Partial<ScrapbookStore>) => void;
+  onUpdateData: (partialOrUpdater: Partial<ScrapbookStore> | ((prev: ScrapbookStore) => Partial<ScrapbookStore>)) => void;
 }
 
 export const SpreadThingsWeLove: React.FC<SpreadThingsWeLoveProps> = ({
@@ -31,15 +31,18 @@ export const SpreadThingsWeLove: React.FC<SpreadThingsWeLoveProps> = ({
             onClick={() => {
               onOpenEdit('¿Qué otra cosa te encanta de ambos?', 'Nueva razón para amarte...', 'text', (newTitle) => {
                 if (newTitle) {
-                  onUpdateData({
-                    thingsWeLovePhotos: [
-                      ...data.thingsWeLovePhotos,
-                      {
-                        id: 'twl-' + Date.now(),
-                        title: newTitle,
-                        url: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop',
-                      },
-                    ],
+                  onUpdateData((prevStore) => {
+                    const current = prevStore.thingsWeLovePhotos || [];
+                    return {
+                      thingsWeLovePhotos: [
+                        ...current,
+                        {
+                          id: 'twl-' + Date.now(),
+                          title: newTitle,
+                          url: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop',
+                        },
+                      ],
+                    };
                   });
                 }
               });
@@ -79,9 +82,11 @@ export const SpreadThingsWeLove: React.FC<SpreadThingsWeLoveProps> = ({
                 <button
                   onClick={() =>
                     onOpenEdit(`Cambiar Foto/Video: ${item.title}`, item.url, 'image', (val) => {
-                      const updated = [...data.thingsWeLovePhotos];
-                      updated[idx].url = val;
-                      onUpdateData({ thingsWeLovePhotos: updated });
+                      onUpdateData((prevStore) => {
+                        const current = prevStore.thingsWeLovePhotos || [];
+                        const updated = current.map((p, pIdx) => (pIdx === idx ? { ...p, url: val } : p));
+                        return { thingsWeLovePhotos: updated };
+                      });
                     })
                   }
                   className="absolute inset-0 bg-sky-950/70 text-white text-[11px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
@@ -93,9 +98,11 @@ export const SpreadThingsWeLove: React.FC<SpreadThingsWeLoveProps> = ({
               <div
                 onClick={() =>
                   onOpenEdit('Editar Título', item.title, 'text', (newT) => {
-                    const updated = [...data.thingsWeLovePhotos];
-                    updated[idx].title = newT;
-                    onUpdateData({ thingsWeLovePhotos: updated });
+                    onUpdateData((prevStore) => {
+                      const current = prevStore.thingsWeLovePhotos || [];
+                      const updated = current.map((p, pIdx) => (pIdx === idx ? { ...p, title: newT } : p));
+                      return { thingsWeLovePhotos: updated };
+                    });
                   })
                 }
                 className="text-center font-hand text-base font-bold text-slate-900 cursor-pointer hover:text-sky-600 truncate"

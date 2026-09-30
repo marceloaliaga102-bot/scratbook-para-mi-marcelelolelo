@@ -146,7 +146,21 @@ export default function App() {
       .then((res) => res.json())
       .then((sqlBook) => {
         if (sqlBook && sqlBook.initialized !== false) {
-          setData((prev) => ({ ...prev, ...sqlBook }));
+          setData((prev) => {
+            const mergedCustomPages = {
+              ...(prev.customPages || {}),
+              ...(sqlBook.customPages || {}),
+            };
+            const next = {
+              ...prev,
+              ...sqlBook,
+              customPages: mergedCustomPages,
+            };
+            try {
+              localStorage.setItem('scrapbook_500_data', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
           if (Array.isArray(sqlBook.songs) && sqlBook.songs.length > 0) {
             setSongs(sqlBook.songs);
           }
@@ -160,17 +174,28 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = subscribeToScrapbook(
       (cloudData) => {
-        setData(cloudData);
+        setData((prev) => {
+          // Combinar profundamente las páginas para no perder fotos añadidas localmente
+          const mergedCustomPages = {
+            ...(prev.customPages || {}),
+            ...(cloudData.customPages || {}),
+          };
+          const next = {
+            ...prev,
+            ...cloudData,
+            customPages: mergedCustomPages,
+          };
+          try {
+            localStorage.setItem('scrapbook_500_data', JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+
         if (Array.isArray(cloudData.songs)) {
           setSongs(cloudData.songs);
         }
         setCloudSynced(true);
         setSyncStatusText('Firebase & PostgreSQL ✓');
-        try {
-          localStorage.setItem('scrapbook_500_data', JSON.stringify(cloudData));
-        } catch {
-          // ignore
-        }
       },
       (err) => {
         console.warn('Firebase sync offline or local fallback:', err);
@@ -227,26 +252,51 @@ export default function App() {
   };
 
   // Función unificada que actualiza en tiempo real en Firestore, PostgreSQL y localStorage
-  const updateData = async (partial: Partial<ScrapbookStore>) => {
+  // Admite tanto un objeto parcial como una función updater (prevStore => partial)
+  const updateData = async (
+    updaterOrPartial: Partial<ScrapbookStore> | ((prev: ScrapbookStore) => Partial<ScrapbookStore>)
+  ) => {
+    let payloadToSave: Partial<ScrapbookStore> = {};
+    let fullUpdatedState: ScrapbookStore = data;
+
     // 1. Actualización optimista instantánea (0ms de retraso)
     setData((prev) => {
-      const next = { ...prev, ...partial };
+      const partial = typeof updaterOrPartial === 'function' ? updaterOrPartial(prev) : updaterOrPartial;
+      payloadToSave = partial;
+
+      const mergedCustomPages = partial.customPages
+        ? { ...(prev.customPages || {}), ...partial.customPages }
+        : prev.customPages;
+
+      fullUpdatedState = {
+        ...prev,
+        ...partial,
+        customPages: mergedCustomPages,
+      };
+
       try {
-        localStorage.setItem('scrapbook_500_data', JSON.stringify(next));
-      } catch {}
-      return next;
+        localStorage.setItem('scrapbook_500_data', JSON.stringify(fullUpdatedState));
+      } catch (e) {
+        console.warn('LocalStorage save notice:', e);
+      }
+      return fullUpdatedState;
     });
 
     setSyncStatusText('Guardando...');
+
+    const savePayload: Partial<ScrapbookStore> = {
+      ...payloadToSave,
+      customPages: fullUpdatedState.customPages,
+    };
 
     // 2. Guardar en paralelo en PostgreSQL (Cloud SQL) y Firebase Firestore
     const sqlPromise = fetch('/api/book-data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(partial),
+      body: JSON.stringify(savePayload),
     }).catch((err) => console.warn('Cloud SQL save notice:', err));
 
-    const firestorePromise = saveScrapbookToCloud(partial)
+    const firestorePromise = saveScrapbookToCloud(savePayload)
       .then(() => {
         setCloudSynced(true);
         setSyncStatusText('Firebase & PostgreSQL ✓');
@@ -581,12 +631,23 @@ export default function App() {
                 leftPageData={data.customPages?.[currentLeftPage]}
                 rightPageData={data.customPages?.[currentRightPage]}
                 isAdmin={isAdminLoggedIn}
-                onUpdatePage={(pageNum, pageObj) => {
-                  updateData({
-                    customPages: {
-                      ...(data.customPages || {}),
-                      [pageNum]: pageObj,
-                    },
+                onUpdatePage={(pageNum, pageOrUpdater) => {
+                  updateData((prevStore) => {
+                    const existingPage: CustomPage = prevStore.customPages?.[pageNum] || {
+                      pageNumber: pageNum,
+                      title: `Página ${pageNum}`,
+                      subtitle: 'Nuestra Historia',
+                      elements: [],
+                    };
+                    const updatedPage =
+                      typeof pageOrUpdater === 'function' ? pageOrUpdater(existingPage) : pageOrUpdater;
+
+                    return {
+                      customPages: {
+                        ...(prevStore.customPages || {}),
+                        [pageNum]: updatedPage,
+                      },
+                    };
                   });
                 }}
                 onOpenEdit={openEdit}

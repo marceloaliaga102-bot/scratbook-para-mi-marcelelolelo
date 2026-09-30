@@ -25,7 +25,10 @@ interface DynamicPageSpreadProps {
   leftPageData?: CustomPage;
   rightPageData?: CustomPage;
   isAdmin: boolean;
-  onUpdatePage: (pageNumber: number, page: CustomPage) => void;
+  onUpdatePage: (
+    pageNumber: number,
+    pageOrUpdater: CustomPage | ((prev: CustomPage) => CustomPage)
+  ) => void;
   onOpenEdit: (
     title: string,
     value: string,
@@ -214,19 +217,22 @@ export const DynamicPageSpread: React.FC<DynamicPageSpreadProps> = ({
     const handleAddText = () => {
       onOpenEdit('Añadir Texto a Página ' + pageNumber, 'Nuevo recuerdo...', 'textarea', (text) => {
         if (!text) return;
-        const newEl: PageElement = {
-          id: `txt-${Date.now()}`,
-          type: 'text',
-          x: 15,
-          y: 30 + (pageData.elements.length * 10) % 50,
-          content: text,
-          fontFamily: 'Caveat',
-          fontSize: 22,
-          color: '#1e293b',
-        };
-        onUpdatePage(pageNumber, {
-          ...pageData,
-          elements: [...pageData.elements, newEl],
+        onUpdatePage(pageNumber, (currentPage) => {
+          const currentElements = currentPage.elements || [];
+          const newEl: PageElement = {
+            id: `txt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            type: 'text',
+            x: 15,
+            y: 30 + (currentElements.length * 10) % 50,
+            content: text,
+            fontFamily: 'Caveat',
+            fontSize: 22,
+            color: '#1e293b',
+          };
+          return {
+            ...currentPage,
+            elements: [...currentElements, newEl],
+          };
         });
       });
     };
@@ -239,7 +245,7 @@ export const DynamicPageSpread: React.FC<DynamicPageSpreadProps> = ({
         (url) => {
           if (!url) return;
           const newEl: PageElement = {
-            id: `img-${Date.now()}`,
+            id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
             type: 'polaroid',
             x: 15,
             y: 20,
@@ -249,17 +255,17 @@ export const DynamicPageSpread: React.FC<DynamicPageSpreadProps> = ({
             caption: 'Página ' + pageNumber,
             rotation: (Math.random() - 0.5) * 6,
           };
-          onUpdatePage(pageNumber, {
-            ...pageData,
-            elements: [...pageData.elements, newEl],
-          });
+          onUpdatePage(pageNumber, (currentPage) => ({
+            ...currentPage,
+            elements: [...(currentPage.elements || []), newEl],
+          }));
         }
       );
     };
 
     const handleAddSticker = (emoji: string) => {
       const newEl: PageElement = {
-        id: `stk-${Date.now()}`,
+        id: `stk-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         type: 'sticker',
         x: 40 + (Math.random() - 0.5) * 30,
         y: 40 + (Math.random() - 0.5) * 30,
@@ -267,51 +273,51 @@ export const DynamicPageSpread: React.FC<DynamicPageSpreadProps> = ({
         fontSize: 36,
         rotation: (Math.random() - 0.5) * 20,
       };
-      onUpdatePage(pageNumber, {
-        ...pageData,
-        elements: [...pageData.elements, newEl],
-      });
+      onUpdatePage(pageNumber, (currentPage) => ({
+        ...currentPage,
+        elements: [...(currentPage.elements || []), newEl],
+      }));
     };
 
     const handleDeleteElement = (id: string) => {
-      onUpdatePage(pageNumber, {
-        ...pageData,
-        elements: pageData.elements.filter((el) => el.id !== id),
-      });
+      onUpdatePage(pageNumber, (currentPage) => ({
+        ...currentPage,
+        elements: (currentPage.elements || []).filter((el) => el.id !== id),
+      }));
     };
 
     const handleRotateElement = (id: string) => {
-      onUpdatePage(pageNumber, {
-        ...pageData,
-        elements: pageData.elements.map((el) => {
+      onUpdatePage(pageNumber, (currentPage) => ({
+        ...currentPage,
+        elements: (currentPage.elements || []).map((el) => {
           if (el.id === id) {
             const currentRot = el.rotation || 0;
             return { ...el, rotation: (currentRot + 15) % 360 };
           }
           return el;
         }),
-      });
+      }));
     };
 
     const handleEditElement = (el: PageElement) => {
       if (!isAdmin) return;
       if (el.type === 'image' || el.type === 'polaroid' || el.type === 'frame') {
         onOpenEdit('Editar URL de Imagen', el.content, 'image', (newUrl) => {
-          onUpdatePage(pageNumber, {
-            ...pageData,
-            elements: pageData.elements.map((item) =>
+          onUpdatePage(pageNumber, (currentPage) => ({
+            ...currentPage,
+            elements: (currentPage.elements || []).map((item) =>
               item.id === el.id ? { ...item, content: newUrl } : item
             ),
-          });
+          }));
         });
       } else {
         onOpenEdit('Editar Texto', el.content, 'textarea', (newText) => {
-          onUpdatePage(pageNumber, {
-            ...pageData,
-            elements: pageData.elements.map((item) =>
+          onUpdatePage(pageNumber, (currentPage) => ({
+            ...currentPage,
+            elements: (currentPage.elements || []).map((item) =>
               item.id === el.id ? { ...item, content: newText } : item
             ),
-          });
+          }));
         });
       }
     };

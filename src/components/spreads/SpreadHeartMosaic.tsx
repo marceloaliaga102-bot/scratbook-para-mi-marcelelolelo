@@ -1,12 +1,12 @@
 import React from 'react';
 import { Heart, Sparkles, Camera } from 'lucide-react';
-import { ScrapbookStore } from '../../data/scrapbookData';
+import { ScrapbookStore, defaultScrapbookData } from '../../data/scrapbookData';
 
 interface SpreadHeartMosaicProps {
   data: ScrapbookStore;
   onOpenEdit: (title: string, value: string, type: 'image' | 'text' | 'textarea', onSave: (val: string) => void) => void;
   onTriggerRain: () => void;
-  onUpdateData: (partial: Partial<ScrapbookStore>) => void;
+  onUpdateData: (partialOrUpdater: Partial<ScrapbookStore> | ((prev: ScrapbookStore) => Partial<ScrapbookStore>)) => void;
 }
 
 export const SpreadHeartMosaic: React.FC<SpreadHeartMosaicProps> = ({
@@ -49,9 +49,15 @@ export const SpreadHeartMosaic: React.FC<SpreadHeartMosaicProps> = ({
               <button
                 onClick={() =>
                   onOpenEdit(`Cambiar Foto de Mosaico #${i + 1}`, src, 'image', (val) => {
-                    const updated = [...mosaicPhotos];
-                    updated[i] = val;
-                    onUpdateData({ mosaicPhotos: updated });
+                    onUpdateData((prevStore) => {
+                      const current =
+                        prevStore.mosaicPhotos && prevStore.mosaicPhotos.length === 6
+                          ? prevStore.mosaicPhotos
+                          : defaultScrapbookData.mosaicPhotos;
+                      const updated = [...current];
+                      updated[i] = val;
+                      return { mosaicPhotos: updated };
+                    });
                   })
                 }
                 className="absolute inset-0 bg-sky-950/70 text-white text-[10px] font-bold flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition"

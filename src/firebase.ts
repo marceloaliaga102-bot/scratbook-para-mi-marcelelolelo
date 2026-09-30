@@ -5,9 +5,11 @@ import {
   setDoc,
   onSnapshot,
   getDoc,
+  collection,
   serverTimestamp,
 } from 'firebase/firestore';
 import { ScrapbookStore, defaultScrapbookData } from './data/scrapbookData';
+import { CustomPage } from './types';
 
 // Config from firebase-applet-config.json
 const firebaseConfig = {
@@ -28,50 +30,103 @@ const SCRAPBOOK_DOC_ID = 'main_book';
 
 /**
  * Escucha cambios en tiempo real desde Firebase Firestore.
- * Cuando tú o tu pareja hagan un cambio, se actualiza al instante en la pantalla del otro.
+ * Sincroniza tanto los campos generales como cada página personalizada independientemente.
  */
 export function subscribeToScrapbook(
   onData: (data: ScrapbookStore) => void,
   onError?: (err: Error) => void
 ) {
   const scrapbookRef = doc(db, 'scrapbook', SCRAPBOOK_DOC_ID);
+  const customPagesCol = collection(db, 'scrapbook', SCRAPBOOK_DOC_ID, 'custom_pages');
 
-  return onSnapshot(
+  let latestMainData: Partial<ScrapbookStore> = {};
+  let latestCustomPages: Record<number, CustomPage> = {};
+
+  const notify = () => {
+    const combinedPages = {
+      ...(latestMainData.customPages || {}),
+      ...latestCustomPages,
+    };
+
+    const merged: ScrapbookStore = {
+      ...defaultScrapbookData,
+      ...latestMainData,
+      customPages: combinedPages,
+    };
+    onData(merged);
+  };
+
+  // 1. Escuchar documento principal
+  const unsubMain = onSnapshot(
     scrapbookRef,
     (snapshot) => {
       if (snapshot.exists()) {
-        const cloudData = snapshot.data() as Partial<ScrapbookStore>;
-        // Combinar con los datos por defecto para asegurar todos los campos
-        const merged: ScrapbookStore = {
-          ...defaultScrapbookData,
-          ...cloudData,
-        };
-        onData(merged);
+        latestMainData = snapshot.data() as Partial<ScrapbookStore>;
+        notify();
       } else {
-        // Inicializar por primera vez con los datos por defecto
         setDoc(scrapbookRef, {
           ...defaultScrapbookData,
           _updatedAt: serverTimestamp(),
         }).catch((err) => {
           console.error('Error inicializando scrapbook en la nube:', err);
         });
-        onData(defaultScrapbookData);
+        latestMainData = defaultScrapbookData;
+        notify();
       }
     },
     (error) => {
-      console.error('Error en suscripción de Firebase:', error);
+      console.error('Error en suscripción de Firebase (main):', error);
       if (onError) onError(error);
     }
   );
+
+  // 2. Escuchar subcolección de páginas personalizadas (para páginas 25-500)
+  const unsubPages = onSnapshot(
+    customPagesCol,
+    (snapshot) => {
+      const pagesMap: Record<number, CustomPage> = {};
+      snapshot.forEach((d) => {
+        const pageNum = parseInt(d.id, 10);
+        if (!isNaN(pageNum)) {
+          pagesMap[pageNum] = d.data() as CustomPage;
+        }
+      });
+      latestCustomPages = { ...latestCustomPages, ...pagesMap };
+      notify();
+    },
+    (error) => {
+      console.warn('Nota: subcolección de páginas personalizada en espera:', error);
+    }
+  );
+
+  return () => {
+    unsubMain();
+    unsubPages();
+  };
 }
 
 /**
  * Guarda cualquier cambio parcial o completo en la nube de Firebase.
- * Se refleja inmediatamente en todos los dispositivos conectados.
+ * Garantiza que las páginas personalizadas se guarden tanto en el documento principal
+ * como en documentos individuales para que nunca se pierdan ni superen límites.
  */
 export async function saveScrapbookToCloud(partialOrFull: Partial<ScrapbookStore>) {
   try {
     const scrapbookRef = doc(db, 'scrapbook', SCRAPBOOK_DOC_ID);
+    
+    // Si viene customPages, guardar cada página en la subcolección para persistencia permanente
+    if (partialOrFull.customPages) {
+      const pageEntries = Object.entries(partialOrFull.customPages);
+      for (const [pNum, pData] of pageEntries) {
+        if (pData) {
+          const pageDocRef = doc(db, 'scrapbook', SCRAPBOOK_DOC_ID, 'custom_pages', String(pNum));
+          setDoc(pageDocRef, { ...pData, _updatedAt: serverTimestamp() }, { merge: true }).catch((e) =>
+            console.warn(`Error guardando página ${pNum} en subcolección:`, e)
+          );
+        }
+      }
+    }
+
     await setDoc(
       scrapbookRef,
       {
