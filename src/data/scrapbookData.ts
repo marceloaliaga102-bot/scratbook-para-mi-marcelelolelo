@@ -86,6 +86,7 @@ export interface ScrapbookStore {
   songsThatRemindMeOfHim?: MemorySongItem[];
 
   songs?: SongItem[];
+  _updatedAtMs?: number;
 }
 
 export const defaultScrapbookData: ScrapbookStore = {

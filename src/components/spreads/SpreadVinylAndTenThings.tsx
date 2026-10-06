@@ -1,6 +1,7 @@
 import React from 'react';
 import { Disc, Music, Camera, Heart, Check, Play, Pause, Edit2, Plus, Sparkles } from 'lucide-react';
 import { ScrapbookStore } from '../../data/scrapbookData';
+import { MediaRenderer } from '../MediaRenderer';
 
 interface SpreadVinylAndTenThingsProps {
   data: ScrapbookStore;
@@ -8,7 +9,7 @@ interface SpreadVinylAndTenThingsProps {
   onToggleMusic: () => void;
   onOpenEdit: (title: string, value: string, type: 'image' | 'text' | 'textarea', onSave: (val: string) => void) => void;
   onTriggerRain: () => void;
-  onUpdateData: (partial: Partial<ScrapbookStore>) => void;
+  onUpdateData: (partialOrUpdater: Partial<ScrapbookStore> | ((prev: ScrapbookStore) => Partial<ScrapbookStore>)) => void;
 }
 
 export const SpreadVinylAndTenThings: React.FC<SpreadVinylAndTenThingsProps> = ({
@@ -72,7 +73,7 @@ export const SpreadVinylAndTenThings: React.FC<SpreadVinylAndTenThingsProps> = (
             {/* Polaroid note beside the vinyl */}
             <div className="bg-white p-2.5 rounded-xl shadow-lg border border-slate-200 rotate-2 max-w-[170px] group">
               <div className="aspect-square rounded overflow-hidden mb-1 relative bg-slate-100">
-                <img
+                <MediaRenderer
                   src={data.polaroidMoonPhoto}
                   alt="Moon photo"
                   className="w-full h-full object-cover"
@@ -128,9 +129,11 @@ export const SpreadVinylAndTenThings: React.FC<SpreadVinylAndTenThingsProps> = (
                 key={i}
                 onClick={() =>
                   onOpenEdit('Editar Recuerdo', item, 'text', (newIt) => {
-                    const updated = [...data.photoboothItems];
-                    updated[i] = newIt;
-                    onUpdateData({ photoboothItems: updated });
+                    onUpdateData((prevStore) => {
+                      const updated = [...(prevStore.photoboothItems || [])];
+                      updated[i] = newIt;
+                      return { photoboothItems: updated };
+                    });
                   })
                 }
                 className="hover:text-rose-600 cursor-pointer hover:underline"
@@ -190,9 +193,11 @@ export const SpreadVinylAndTenThings: React.FC<SpreadVinylAndTenThingsProps> = (
                 key={idx}
                 onClick={() =>
                   onOpenEdit(`Editar Razón #${idx + 1}`, item, 'text', (newText) => {
-                    const updated = [...data.tenThingsList];
-                    updated[idx] = newText;
-                    onUpdateData({ tenThingsList: updated });
+                    onUpdateData((prevStore) => {
+                      const updated = [...(prevStore.tenThingsList || [])];
+                      updated[idx] = newText;
+                      return { tenThingsList: updated };
+                    });
                   })
                 }
                 className="cursor-pointer hover:bg-amber-100/60 p-1 rounded transition flex items-start gap-1.5 group"

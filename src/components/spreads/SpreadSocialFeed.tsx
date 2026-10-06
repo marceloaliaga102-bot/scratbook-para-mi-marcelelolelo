@@ -7,7 +7,7 @@ interface SpreadSocialFeedProps {
   data: ScrapbookStore;
   onOpenEdit: (title: string, value: string, type: 'image' | 'text' | 'textarea', onSave: (val: string) => void) => void;
   onTriggerRain: () => void;
-  onUpdateData: (partial: Partial<ScrapbookStore>) => void;
+  onUpdateData: (partialOrUpdater: Partial<ScrapbookStore> | ((prev: ScrapbookStore) => Partial<ScrapbookStore>)) => void;
 }
 
 export const SpreadSocialFeed: React.FC<SpreadSocialFeedProps> = ({
@@ -18,14 +18,17 @@ export const SpreadSocialFeed: React.FC<SpreadSocialFeedProps> = ({
 }) => {
   const toggleIgLike = () => {
     const newLiked = !data.isIgLiked;
-    const newCount = newLiked ? data.igLikesCount + 1 : data.igLikesCount - 1;
-    onUpdateData({ isIgLiked: newLiked, igLikesCount: newCount });
+    onUpdateData((prevStore) => {
+      const nextLiked = !prevStore.isIgLiked;
+      const nextCount = nextLiked ? (prevStore.igLikesCount || 0) + 1 : Math.max(0, (prevStore.igLikesCount || 0) - 1);
+      return { isIgLiked: nextLiked, igLikesCount: nextCount };
+    });
     if (newLiked) onTriggerRain();
   };
 
   const toggleXLike = () => {
     const newLiked = !data.isXLiked;
-    onUpdateData({ isXLiked: newLiked });
+    onUpdateData((prevStore) => ({ isXLiked: !prevStore.isXLiked }));
     if (newLiked) onTriggerRain();
   };
 

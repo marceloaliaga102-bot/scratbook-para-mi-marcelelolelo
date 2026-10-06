@@ -7,7 +7,7 @@ interface SpreadTinAndDenimProps {
   data: ScrapbookStore;
   onOpenEdit: (title: string, value: string, type: 'image' | 'text' | 'textarea', onSave: (val: string) => void) => void;
   onTriggerRain: () => void;
-  onUpdateData: (partial: Partial<ScrapbookStore>) => void;
+  onUpdateData: (partialOrUpdater: Partial<ScrapbookStore> | ((prev: ScrapbookStore) => Partial<ScrapbookStore>)) => void;
 }
 
 export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
@@ -136,7 +136,9 @@ export const SpreadTinAndDenim: React.FC<SpreadTinAndDenimProps> = ({
                     onClick={() => {
                       onOpenEdit('Nuevo Deseo Juntos', 'Escribe aquí un deseo...', 'text', (newWish) => {
                         if (newWish) {
-                          onUpdateData({ tinWishList: [...data.tinWishList, newWish] });
+                          onUpdateData((prevStore) => ({
+                            tinWishList: [...(prevStore.tinWishList || []), newWish],
+                          }));
                         }
                       });
                     }}

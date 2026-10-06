@@ -1,6 +1,7 @@
 import React from 'react';
 import { Camera, Heart, Sparkles, Plus, Edit2, Calendar } from 'lucide-react';
 import { ScrapbookStore } from '../../data/scrapbookData';
+import { MediaRenderer } from '../MediaRenderer';
 
 interface SpreadSpecialMomentsProps {
   data: ScrapbookStore;
@@ -58,7 +59,7 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
 
           <div className="bg-white p-3 rounded-2xl shadow-lg border border-slate-200 group">
             <div className="aspect-video rounded-xl overflow-hidden bg-slate-100 relative mb-2">
-              <img
+              <MediaRenderer
                 src={data.specialMoments[0]?.photo || 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop'}
                 alt="Momento 1"
                 className="w-full h-full object-cover group-hover:scale-105 transition"
@@ -138,7 +139,7 @@ export const SpreadSpecialMoments: React.FC<SpreadSpecialMomentsProps> = ({
         <div className="space-y-4 my-auto">
           <div className="bg-white p-3 rounded-2xl shadow-lg border border-slate-200 group">
             <div className="aspect-video rounded-xl overflow-hidden bg-slate-100 relative mb-2">
-              <img
+              <MediaRenderer
                 src={data.specialMoments[1]?.photo || 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&auto=format&fit=crop'}
                 alt="Momento 2"
                 className="w-full h-full object-cover group-hover:scale-105 transition"

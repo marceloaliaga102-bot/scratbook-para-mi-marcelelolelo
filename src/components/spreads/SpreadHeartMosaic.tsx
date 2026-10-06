@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart, Sparkles, Camera } from 'lucide-react';
 import { ScrapbookStore, defaultScrapbookData } from '../../data/scrapbookData';
+import { MediaRenderer } from '../MediaRenderer';
 
 interface SpreadHeartMosaicProps {
   data: ScrapbookStore;
@@ -15,14 +16,17 @@ export const SpreadHeartMosaic: React.FC<SpreadHeartMosaicProps> = ({
   onTriggerRain,
   onUpdateData,
 }) => {
-  const mosaicPhotos = (data.mosaicPhotos && data.mosaicPhotos.length === 6) ? data.mosaicPhotos : [
-    'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=300&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=300&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=300&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=300&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=300&auto=format&fit=crop',
-  ];
+  const mosaicPhotos =
+    Array.isArray(data.mosaicPhotos) && data.mosaicPhotos.length > 0
+      ? [
+          data.mosaicPhotos[0] || defaultScrapbookData.mosaicPhotos[0],
+          data.mosaicPhotos[1] || defaultScrapbookData.mosaicPhotos[1],
+          data.mosaicPhotos[2] || defaultScrapbookData.mosaicPhotos[2],
+          data.mosaicPhotos[3] || defaultScrapbookData.mosaicPhotos[3],
+          data.mosaicPhotos[4] || defaultScrapbookData.mosaicPhotos[4],
+          data.mosaicPhotos[5] || defaultScrapbookData.mosaicPhotos[5],
+        ]
+      : defaultScrapbookData.mosaicPhotos;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-0 h-full w-full">
@@ -45,18 +49,24 @@ export const SpreadHeartMosaic: React.FC<SpreadHeartMosaicProps> = ({
               key={i}
               className="aspect-square bg-slate-100 rounded-xl overflow-hidden shadow-md border-2 border-white hover:scale-105 transition relative group"
             >
-              <img src={src} alt={`Mosaic ${i}`} className="w-full h-full object-cover" />
+              <MediaRenderer src={src} alt={`Mosaic ${i}`} className="w-full h-full object-cover" />
               <button
                 onClick={() =>
-                  onOpenEdit(`Cambiar Foto de Mosaico #${i + 1}`, src, 'image', (val) => {
+                  onOpenEdit(`Cambiar Foto/Video de Mosaico #${i + 1}`, src, 'image', (val) => {
                     onUpdateData((prevStore) => {
-                      const current =
-                        prevStore.mosaicPhotos && prevStore.mosaicPhotos.length === 6
-                          ? prevStore.mosaicPhotos
-                          : defaultScrapbookData.mosaicPhotos;
-                      const updated = [...current];
-                      updated[i] = val;
-                      return { mosaicPhotos: updated };
+                      const base =
+                        Array.isArray(prevStore.mosaicPhotos) && prevStore.mosaicPhotos.length > 0
+                          ? [
+                              prevStore.mosaicPhotos[0] || defaultScrapbookData.mosaicPhotos[0],
+                              prevStore.mosaicPhotos[1] || defaultScrapbookData.mosaicPhotos[1],
+                              prevStore.mosaicPhotos[2] || defaultScrapbookData.mosaicPhotos[2],
+                              prevStore.mosaicPhotos[3] || defaultScrapbookData.mosaicPhotos[3],
+                              prevStore.mosaicPhotos[4] || defaultScrapbookData.mosaicPhotos[4],
+                              prevStore.mosaicPhotos[5] || defaultScrapbookData.mosaicPhotos[5],
+                            ]
+                          : [...defaultScrapbookData.mosaicPhotos];
+                      base[i] = val;
+                      return { mosaicPhotos: base };
                     });
                   })
                 }

@@ -60,31 +60,11 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
         reader.readAsDataURL(file);
       } else {
         setMediaType('image');
-        // 1. Comprimir imagen en el cliente para que pese ~40KB en vez de 10MB
-        const compressedDataUrl = await compressImage(file, 1200, 1200, 0.78);
-        
-        // 2. Intentar subir al servidor para obtener una URL estática ligera (/uploads/images/...)
-        try {
-          const uploadRes = await fetch('/api/upload-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              image: compressedDataUrl,
-              name: file.name,
-            }),
-          });
-          const uploadData = await uploadRes.json();
-          if (uploadData?.url) {
-            setValue(uploadData.url);
-          } else {
-            setValue(compressedDataUrl);
-          }
-        } catch {
-          // Si el servidor local no está disponible (ej. despliegue estático), usar dataUrl optimizada
-          setValue(compressedDataUrl);
-        }
+        // Comprimir imagen en el cliente (~40KB-80KB) para guardado instantáneo y permanente en Firebase Firestore
+        const compressedDataUrl = await compressImage(file, 960, 960, 0.76);
+        setValue(compressedDataUrl);
 
-        // Registrar en biblioteca de medios de PostgreSQL
+        // Registrar en biblioteca de medios de PostgreSQL en segundo plano
         fetch('/api/media', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -102,6 +82,8 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
     } catch (err) {
       console.error('Error procesando imagen:', err);
       setIsProcessing(false);
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -290,10 +272,13 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
             </button>
             <button
               onClick={handleSave}
-              className="crystal-btn px-5 py-2 text-sky-950 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md active:scale-95"
+              disabled={isProcessing}
+              className={`crystal-btn px-5 py-2 text-sky-950 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 ${
+                isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              <Check className="w-4 h-4" />
-              Guardar en la Nube
+              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {isProcessing ? 'Procesando...' : 'Guardar en la Nube'}
             </button>
           </div>
         </div>

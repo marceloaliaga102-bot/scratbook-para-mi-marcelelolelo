@@ -87,25 +87,27 @@ app.get('/api/book-data', async (req, res) => {
     const book = await getScrapbook('main_book');
     if (book) {
       const dbPagesData: any = book.pages || {};
+      const dbStoreData: any = dbPagesData.store || {};
       const allCustomPages = {
+        ...(dbStoreData.customPages || {}),
         ...(dbPagesData.customPages || {}),
         ...(fileData.customPages || {}),
       };
 
       return res.json({
+        ...dbStoreData,
         ...fileData,
-        ...book,
         ...dbPagesData,
         customPages: allCustomPages,
-        title: fileData.coverTitle || fileData.title || book.title || 'Nuestro Scrapbook',
-        subtitle: fileData.coverSubtitle || fileData.subtitle || book.subtitle || '',
-        recipientName: fileData.recipientName || book.recipientName || '',
-        senderName: fileData.senderName || book.senderName || '',
-        specialDate: fileData.specialDate || book.specialDate || '',
-        theme: fileData.theme || book.theme || {},
+        title: fileData.coverTitle || dbStoreData.coverTitle || fileData.title || book.title || 'Nuestro Scrapbook',
+        subtitle: fileData.coverSubtitle || dbStoreData.coverSubtitle || fileData.subtitle || book.subtitle || '',
+        recipientName: fileData.recipientName || dbStoreData.recipientName || book.recipientName || '',
+        senderName: fileData.senderName || dbStoreData.senderName || book.senderName || '',
+        specialDate: fileData.specialDate || dbStoreData.specialDate || book.specialDate || '',
+        theme: fileData.theme || dbStoreData.theme || book.theme || {},
         pages: fileData.pages || (Array.isArray(book.pages) ? book.pages : dbPagesData.list || []),
         songs: Array.isArray(fileData.songs) && fileData.songs.length > 0 ? fileData.songs : (Array.isArray(book.songs) ? book.songs : []),
-        surpriseQuotes: fileData.surpriseQuotes || book.surpriseQuotes || [],
+        surpriseQuotes: fileData.surpriseQuotes || dbStoreData.surpriseQuotes || book.surpriseQuotes || [],
         updatedAt: book.updatedAt,
       });
     }
@@ -145,7 +147,13 @@ app.post('/api/book-data', optionalAuth, async (req: AuthRequest, res) => {
       existingSql = (await getScrapbook('main_book')) || {};
     } catch {}
 
+    const existingStore =
+      existingSql.pages && typeof existingSql.pages === 'object' && !Array.isArray(existingSql.pages)
+        ? existingSql.pages.store || {}
+        : {};
+
     const existingCustomPages = {
+      ...(existingStore.customPages || {}),
       ...(currentBackup.customPages || {}),
       ...((existingSql.pages && typeof existingSql.pages === 'object' && !Array.isArray(existingSql.pages)) ? existingSql.pages.customPages : {}),
       ...(existingSql.customPages || {}),
@@ -156,8 +164,8 @@ app.post('/api/book-data', optionalAuth, async (req: AuthRequest, res) => {
       : existingCustomPages;
 
     const merged = {
+      ...existingStore,
       ...currentBackup,
-      ...existingSql,
       ...payload,
       customPages: mergedCustomPages,
     };
@@ -174,6 +182,7 @@ app.post('/api/book-data', optionalAuth, async (req: AuthRequest, res) => {
       pages: {
         list: Array.isArray(merged.pages) ? merged.pages : [],
         customPages: mergedCustomPages,
+        store: merged,
       },
       songs: merged.songs ?? [],
       surpriseQuotes: merged.surpriseQuotes ?? [],

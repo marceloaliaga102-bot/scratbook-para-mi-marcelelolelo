@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Heart,
   Sparkles,
@@ -30,7 +30,8 @@ import { BookCoverIntro } from './components/BookCoverIntro';
 import { DynamicPageSpread } from './components/DynamicPageSpread';
 import { ShareModal } from './components/ShareModal';
 import { romanticAudio } from './utils/romanticAudio';
-import { subscribeToScrapbook, saveScrapbookToCloud } from './firebase';
+import { subscribeToScrapbook, saveScrapbookToCloud, isCloudSaveInProgress } from './firebase';
+import { loadLocalBookState, saveLocalBookState } from './utils/localDb';
 import { SongItem, CustomPage } from './types';
 
 // Spreads
@@ -71,6 +72,9 @@ export default function App() {
     }
     return defaultScrapbookData;
   });
+
+  const dataRef = useRef<ScrapbookStore>(data);
+  const firestoreSyncedRef = useRef<boolean>(false);
 
   const [currentSpread, setCurrentSpread] = useState(0); // Start on Page 1-2
   const [isBookOpened, setIsBookOpened] = useState(false); // Closed cover intro screen
@@ -117,8 +121,35 @@ export default function App() {
     onSave: () => {},
   });
 
-  // Initial load from backend
+  // Initial load from IndexedDB & backend fallback
   useEffect(() => {
+    // 0. Cargar respaldo local de IndexedDB (soporta cientos de MB en fotos y videos)
+    loadLocalBookState()
+      .then((localData) => {
+        if (localData && !isCloudSaveInProgress()) {
+          const currentTs = dataRef.current._updatedAtMs || 0;
+          const localTs = localData._updatedAtMs || 0;
+          if (!firestoreSyncedRef.current || localTs > currentTs) {
+            const merged: ScrapbookStore = {
+              ...defaultScrapbookData,
+              ...dataRef.current,
+              ...localData,
+              customPages: {
+                ...(dataRef.current.customPages || {}),
+                ...(localData.customPages || {}),
+              },
+            };
+            dataRef.current = merged;
+            setData(merged);
+            // Si el respaldo local de IndexedDB es más reciente que la nube, sincronizarlo a Firebase
+            if (firestoreSyncedRef.current && localTs > currentTs) {
+              saveScrapbookToCloud(merged).catch(() => {});
+            }
+          }
+        }
+      })
+      .catch(() => {});
+
     // 1. Fetch songs from backend
     fetch('/api/songs')
       .then((res) => res.json())
@@ -141,26 +172,32 @@ export default function App() {
       })
       .catch(() => {});
 
-    // 2. Fetch book data from backend
+    // 2. Fetch book data from backend (únicamente como respaldo inicial si Firestore aún no sincronizó)
     fetch('/api/book-data')
       .then((res) => res.json())
       .then((sqlBook) => {
-        if (sqlBook && sqlBook.initialized !== false) {
-          setData((prev) => {
-            const mergedCustomPages = {
-              ...(prev.customPages || {}),
-              ...(sqlBook.customPages || {}),
-            };
-            const next = {
-              ...prev,
-              ...sqlBook,
-              customPages: mergedCustomPages,
-            };
-            try {
-              localStorage.setItem('scrapbook_500_data', JSON.stringify(next));
-            } catch {}
-            return next;
-          });
+        if (
+          sqlBook &&
+          sqlBook.initialized !== false &&
+          !firestoreSyncedRef.current &&
+          !isCloudSaveInProgress()
+        ) {
+          const prev = dataRef.current;
+          const prevTs = prev._updatedAtMs || 0;
+          const sqlTs = sqlBook._updatedAtMs || 0;
+          if (prevTs > sqlTs) return;
+
+          const mergedCustomPages = {
+            ...(prev.customPages || {}),
+            ...(sqlBook.customPages || {}),
+          };
+          const next: ScrapbookStore = {
+            ...prev,
+            ...sqlBook,
+            customPages: mergedCustomPages,
+          };
+          dataRef.current = next;
+          setData(next);
           if (Array.isArray(sqlBook.songs) && sqlBook.songs.length > 0) {
             setSongs(sqlBook.songs);
           }
@@ -174,22 +211,34 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = subscribeToScrapbook(
       (cloudData) => {
-        setData((prev) => {
-          // Combinar profundamente las páginas para no perder fotos añadidas localmente
-          const mergedCustomPages = {
-            ...(prev.customPages || {}),
-            ...(cloudData.customPages || {}),
-          };
-          const next = {
-            ...prev,
-            ...cloudData,
-            customPages: mergedCustomPages,
-          };
-          try {
-            localStorage.setItem('scrapbook_500_data', JSON.stringify(next));
-          } catch {}
-          return next;
-        });
+        if (isCloudSaveInProgress()) {
+          return;
+        }
+        const prev = dataRef.current;
+        const localTs = prev._updatedAtMs || 0;
+        const cloudTs = cloudData._updatedAtMs || 0;
+
+        // Si el usuario tiene cambios locales más recientes en IndexedDB que aún no estaban en la nube,
+        // preservar los cambios locales y subirlos a la nube en vez de borrarlos.
+        if (localTs > cloudTs && localTs > 0) {
+          firestoreSyncedRef.current = true;
+          saveScrapbookToCloud(prev).catch(() => {});
+          return;
+        }
+
+        firestoreSyncedRef.current = true;
+        const mergedCustomPages = {
+          ...(prev.customPages || {}),
+          ...(cloudData.customPages || {}),
+        };
+        const next: ScrapbookStore = {
+          ...prev,
+          ...cloudData,
+          customPages: mergedCustomPages,
+        };
+        dataRef.current = next;
+        setData(next);
+        saveLocalBookState(next);
 
         if (Array.isArray(cloudData.songs)) {
           setSongs(cloudData.songs);
@@ -251,42 +300,36 @@ export default function App() {
     });
   };
 
-  // Función unificada que actualiza en tiempo real en Firestore, PostgreSQL y localStorage
-  // Admite tanto un objeto parcial como una función updater (prevStore => partial)
+  // Función unificada que actualiza de forma 100% síncrona en memoria/IndexedDB y persiste en Firebase + PostgreSQL
   const updateData = async (
     updaterOrPartial: Partial<ScrapbookStore> | ((prev: ScrapbookStore) => Partial<ScrapbookStore>)
   ) => {
-    let payloadToSave: Partial<ScrapbookStore> = {};
-    let fullUpdatedState: ScrapbookStore = data;
+    // 1. Calcular el nuevo estado de forma 100% SÍNCRONA usando dataRef.current (evita el bug de batching de React 18)
+    const prev = dataRef.current;
+    const partial = typeof updaterOrPartial === 'function' ? updaterOrPartial(prev) : updaterOrPartial;
 
-    // 1. Actualización optimista instantánea (0ms de retraso)
-    setData((prev) => {
-      const partial = typeof updaterOrPartial === 'function' ? updaterOrPartial(prev) : updaterOrPartial;
-      payloadToSave = partial;
+    const mergedCustomPages = partial.customPages
+      ? { ...(prev.customPages || {}), ...partial.customPages }
+      : prev.customPages;
 
-      const mergedCustomPages = partial.customPages
-        ? { ...(prev.customPages || {}), ...partial.customPages }
-        : prev.customPages;
+    const nowMs = Date.now();
+    const fullUpdatedState: ScrapbookStore = {
+      ...prev,
+      ...partial,
+      customPages: mergedCustomPages,
+      _updatedAtMs: nowMs,
+    };
 
-      fullUpdatedState = {
-        ...prev,
-        ...partial,
-        customPages: mergedCustomPages,
-      };
-
-      try {
-        localStorage.setItem('scrapbook_500_data', JSON.stringify(fullUpdatedState));
-      } catch (e) {
-        console.warn('LocalStorage save notice:', e);
-      }
-      return fullUpdatedState;
-    });
+    dataRef.current = fullUpdatedState;
+    setData(fullUpdatedState);
+    saveLocalBookState(fullUpdatedState);
 
     setSyncStatusText('Guardando...');
 
     const savePayload: Partial<ScrapbookStore> = {
-      ...payloadToSave,
-      customPages: fullUpdatedState.customPages,
+      ...partial,
+      ...(partial.customPages ? { customPages: mergedCustomPages } : {}),
+      _updatedAtMs: nowMs,
     };
 
     // 2. Guardar en paralelo en PostgreSQL (Cloud SQL) y Firebase Firestore
@@ -296,7 +339,7 @@ export default function App() {
       body: JSON.stringify(savePayload),
     }).catch((err) => console.warn('Cloud SQL save notice:', err));
 
-    const firestorePromise = saveScrapbookToCloud(savePayload)
+    const firestorePromise = saveScrapbookToCloud(fullUpdatedState)
       .then(() => {
         setCloudSynced(true);
         setSyncStatusText('Firebase & PostgreSQL ✓');

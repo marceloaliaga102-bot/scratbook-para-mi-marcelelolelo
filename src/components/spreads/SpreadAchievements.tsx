@@ -1,12 +1,13 @@
 import React from 'react';
 import { Award, Camera, Sparkles, Plus, Edit2, Heart, CheckCircle2, Star } from 'lucide-react';
 import { ScrapbookStore } from '../../data/scrapbookData';
+import { MediaRenderer } from '../MediaRenderer';
 
 interface SpreadAchievementsProps {
   data: ScrapbookStore;
   onOpenEdit: (title: string, value: string, type: 'image' | 'text' | 'textarea', onSave: (val: string) => void) => void;
   onTriggerRain: () => void;
-  onUpdateData: (partial: Partial<ScrapbookStore>) => void;
+  onUpdateData: (partialOrUpdater: Partial<ScrapbookStore> | ((prev: ScrapbookStore) => Partial<ScrapbookStore>)) => void;
 }
 
 export const SpreadAchievements: React.FC<SpreadAchievementsProps> = ({
@@ -52,9 +53,11 @@ export const SpreadAchievements: React.FC<SpreadAchievementsProps> = ({
                 key={ach.id}
                 onClick={() =>
                   onOpenEdit('Editar Nombre de Logro', ach.title, 'text', (newTitle) => {
-                    const updated = [...data.achievements];
-                    updated[idx] = { ...updated[idx], title: newTitle };
-                    onUpdateData({ achievements: updated });
+                    onUpdateData((prevStore) => {
+                      const updated = [...(prevStore.achievements || [])];
+                      updated[idx] = { ...updated[idx], title: newTitle };
+                      return { achievements: updated };
+                    });
                   })
                 }
                 className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-200 text-center hover:shadow-md cursor-pointer transition hover:border-amber-400 group"
@@ -77,7 +80,7 @@ export const SpreadAchievements: React.FC<SpreadAchievementsProps> = ({
             </div>
 
             <div className="aspect-video rounded-lg overflow-hidden bg-slate-800 relative mb-3">
-              <img
+              <MediaRenderer
                 src={data.achievementPhonePhoto}
                 alt="Achievement Memory"
                 className="w-full h-full object-cover group-hover:scale-105 transition"
@@ -117,12 +120,12 @@ export const SpreadAchievements: React.FC<SpreadAchievementsProps> = ({
             onClick={() => {
               onOpenEdit('Añadir Nuevo Logro', 'Título del logro...', 'text', (newAch) => {
                 if (newAch) {
-                  onUpdateData({
+                  onUpdateData((prevStore) => ({
                     achievements: [
-                      ...data.achievements,
+                      ...(prevStore.achievements || []),
                       { id: 'a-' + Date.now(), title: newAch, icon: 'star' },
                     ],
-                  });
+                  }));
                 }
               });
             }}
@@ -159,7 +162,7 @@ export const SpreadAchievements: React.FC<SpreadAchievementsProps> = ({
             </div>
 
             <div className="aspect-[16/10] bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-600 relative group">
-              <img
+              <MediaRenderer
                 src={data.birthdayCameraPhoto}
                 alt="Birthday Memory"
                 className="w-full h-full object-cover group-hover:scale-105 transition"
@@ -195,9 +198,11 @@ export const SpreadAchievements: React.FC<SpreadAchievementsProps> = ({
                   key={idx}
                   onClick={() =>
                     onOpenEdit(`Editar Nota #${idx + 1}`, note, 'text', (newNote) => {
-                      const updated = [...data.birthdayNotes];
-                      updated[idx] = newNote;
-                      onUpdateData({ birthdayNotes: updated });
+                      onUpdateData((prevStore) => {
+                        const updated = [...(prevStore.birthdayNotes || [])];
+                        updated[idx] = newNote;
+                        return { birthdayNotes: updated };
+                      });
                     })
                   }
                   className="cursor-pointer hover:text-rose-700 hover:bg-rose-50 p-1 rounded transition"
